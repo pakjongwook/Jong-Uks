@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>가위바위보!</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sky-top: #0f2e24;
+    --sky-bottom: #1f4a32;
+    --tree-far: #173d2b;
+    --tree-mid: #112f21;
+    --tree-near: #0a1f15;
+    --wood: #8a5a33;
+    --wood-dark: #5c3a1e;
+    --wood-light: #b07a48;
+    --moss: #7fb35a;
+    --moss-dark: #4f7a35;
+    --cream: #fff4d6;
+    --firefly: #e9ff8a;
+    --bulb: #ffd36b;
+    --neon-pink: #ff5fa2;
+    --gold: #ffcf3f;
+    --lose: #ffb3a1;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    overflow-x: hidden;
+    font-family: "Jua", "Malgun Gothic", system-ui, sans-serif;
+    color: var(--cream);
+    background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 100%);
+  }
+
+  /* 숲 배경 (나무 실루엣) */
+  .forest {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 55vh;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .forest svg {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* 달빛 */
+  .moon {
+    position: fixed;
+    top: 6vh;
+    right: 10vw;
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: #fff8d8;
+    box-shadow: 0 0 40px 10px rgba(255, 248, 200, 0.35);
+    z-index: 0;
+  }
+
+  /* 반딧불 */
+  #fireflies {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* 색종이 */
+  #confetti {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    pointer-events: none;
+  }
+
+  .container {
+    position: relative;
+    z-index: 2;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    padding: 32px 16px;
+  }
+
+  ::selection { background: var(--firefly); color: var(--wood-dark); }
+
+  /* 처음으로 (자기소개 페이지) */
+  .home-nav {
+    width: min(100%, 520px);
+  }
+  .home {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    font-size: 20px;
+    color: var(--cream);
+    text-decoration: none;
+    text-shadow: 2px 2px 0 var(--wood-dark);
+    background: linear-gradient(180deg, var(--wood), #774b28);
+    border: 3px solid var(--wood-dark);
+    border-radius: 14px;
+    box-shadow: 0 5px 0 var(--wood-dark), 0 8px 14px rgba(0, 0, 0, 0.35);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  }
+  @media (hover: hover) {
+    .home:hover { transform: translateY(-3px); filter: brightness(1.12); }
+  }
+  .home:focus-visible { outline: 3px dashed var(--firefly); outline-offset: 4px; }
+  .home:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--wood-dark); }
+
+  /* 나무 간판 제목 + 오락실 전구 */
+  .sign {
+    position: relative;
+    padding: 30px 36px 32px;
+    background: linear-gradient(180deg, var(--wood), #774b28);
+    border: 4px solid var(--wood-dark);
+    border-radius: 18px;
+    box-shadow: 0 8px 0 var(--wood-dark), 0 14px 24px rgba(0, 0, 0, 0.4);
+  }
+  /* 간판 위 이끼 */
+  .sign::before {
+    content: "";
+    position: absolute;
+    top: -10px;
+    left: 12px;
+    right: 12px;
+    height: 16px;
+    background:
+      radial-gradient(circle at 10% 100%, var(--moss) 9px, transparent 10px),
+      radial-gradient(circle at 30% 100%, var(--moss-dark) 11px, transparent 12px),
+      radial-gradient(circle at 55% 100%, var(--moss) 8px, transparent 9px),
+      radial-gradient(circle at 78% 100%, var(--moss-dark) 10px, transparent 11px),
+      radial-gradient(circle at 95% 100%, var(--moss) 8px, transparent 9px);
+  }
+
+  .bulbs {
+    position: absolute;
+    left: 18px;
+    right: 18px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .bulbs.top    { top: 9px; }
+  .bulbs.bottom { bottom: 9px; }
+  .bulbs span {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--bulb);
+    border: 2px solid var(--wood-dark);
+    box-shadow: 0 0 8px 2px rgba(255, 211, 107, 0.8);
+    animation: bulb 1.2s infinite;
+  }
+  .bulbs span:nth-child(odd) { animation-delay: 0.6s; }
+  @keyframes bulb {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; box-shadow: none; }
+  }
+  /* 이겼을 때 전구가 빠르게 깜빡임 */
+  .sign.party .bulbs span { animation-duration: 0.25s; }
+
+  h1 {
+    font-size: clamp(40px, 11vw, 72px);
+    font-weight: 400;
+    letter-spacing: 2px;
+    color: var(--cream);
+    text-shadow:
+      3px 3px 0 var(--wood-dark),
+      0 0 18px rgba(233, 255, 138, 0.55);
+    white-space: nowrap;
+  }
+
+  /* 점수판 */
+  .scoreboard {
+    display: flex;
+    align-items: center;
+    gap: clamp(14px, 5vw, 28px);
+    padding: 12px 22px;
+    background: rgba(5, 14, 10, 0.75);
+    border: 3px solid var(--firefly);
+    border-radius: 14px;
+    box-shadow: 0 0 10px rgba(233, 255, 138, 0.5), inset 0 0 10px rgba(233, 255, 138, 0.25);
+  }
+  .side {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .side .who {
+    font-size: 16px;
+    opacity: 0.9;
+  }
+  .pips {
+    display: flex;
+    gap: 6px;
+  }
+  .pips span {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+  }
+  .side.me  { color: var(--firefly); }
+  .side.com { color: var(--lose); }
+  .pips span.on {
+    background: currentColor;
+    box-shadow: 0 0 10px currentColor;
+  }
+  .score {
+    font-family: "Orbitron", sans-serif;
+    font-weight: 900;
+    font-size: clamp(28px, 8vw, 40px);
+    color: var(--cream);
+    text-shadow: 0 0 8px var(--firefly);
+    font-variant-numeric: tabular-nums;
+  }
+  .score .bump { display: inline-block; animation: bump 0.4s ease; }
+  @keyframes bump {
+    50% { transform: scale(1.5); color: var(--firefly); }
+  }
+  .round {
+    font-family: "Orbitron", sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.15em;
+    color: var(--firefly);
+    text-align: center;
+    margin-top: 4px;
+  }
+  .score-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* 버튼 */
+  .buttons {
+    display: flex;
+    gap: clamp(12px, 4vw, 24px);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .btn {
+    width: clamp(96px, 26vw, 150px);
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-family: inherit;
+    color: var(--cream);
+    background: radial-gradient(circle at 35% 30%, var(--moss) 0%, var(--moss-dark) 75%);
+    border: 5px solid var(--wood-dark);
+    border-radius: 50%;
+    box-shadow: 0 8px 0 var(--wood-dark), 0 14px 22px rgba(0, 0, 0, 0.45);
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  }
+  .btn .emoji {
+    font-size: clamp(40px, 11vw, 64px);
+    line-height: 1;
+    filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.25));
+  }
+  .btn .label {
+    font-size: clamp(16px, 4.5vw, 22px);
+    text-shadow: 2px 2px 0 var(--wood-dark);
+  }
+
+  .btn:focus-visible {
+    outline: none;
+    transform: translateY(-6px) rotate(-3deg);
+    filter: brightness(1.1);
+    box-shadow: 0 14px 0 var(--wood-dark), 0 0 30px rgba(233, 255, 138, 0.45);
+  }
+  /* 마우스가 있는 기기에서만 (폰에서 눌린 채로 남지 않게) */
+  @media (hover: hover) {
+    .btn:not(:disabled):hover {
+      transform: translateY(-6px) rotate(-3deg);
+      filter: brightness(1.1);
+      box-shadow: 0 14px 0 var(--wood-dark), 0 0 30px rgba(233, 255, 138, 0.45);
+    }
+  }
+  .btn:focus-visible {
+    border-color: var(--firefly);
+  }
+  .btn:active {
+    transform: translateY(6px);
+    box-shadow: 0 2px 0 var(--wood-dark), 0 4px 10px rgba(0, 0, 0, 0.4);
+  }
+  .btn:disabled {
+    cursor: default;
+    filter: grayscale(0.4) brightness(0.8);
+    transform: none;
+  }
+
+  /* 결과 영역 (나무 판자) */
+  .result {
+    width: 100%;
+    max-width: 520px;
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    font-size: clamp(22px, 6vw, 32px);
+    text-align: center;
+    background: rgba(92, 58, 30, 0.55);
+    border: 4px dashed var(--wood-light);
+    border-radius: 20px;
+    backdrop-filter: blur(3px);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .result.win  { border-color: var(--firefly); box-shadow: 0 0 24px rgba(233, 255, 138, 0.45); }
+  .result.lose { border-color: var(--lose); }
+
+  .hint {
+    font-size: 20px;
+    opacity: 0.75;
+  }
+
+  /* 결과 내용 */
+  .result-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    animation: pop 0.35s ease;
+  }
+  .versus {
+    display: flex;
+    align-items: center;
+    gap: clamp(16px, 5vw, 32px);
+  }
+  .hand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .hand .emoji {
+    font-size: clamp(56px, 16vw, 88px);
+    line-height: 1;
+  }
+  .hand .who {
+    font-size: clamp(14px, 4vw, 18px);
+    opacity: 0.85;
+  }
+  .vs {
+    font-family: "Orbitron", sans-serif;
+    font-weight: 900;
+    font-size: clamp(20px, 5vw, 28px);
+    color: var(--firefly);
+    text-shadow: 0 0 10px var(--firefly);
+  }
+  .outcome {
+    font-size: clamp(28px, 8vw, 40px);
+    text-shadow: 3px 3px 0 var(--wood-dark);
+  }
+  .outcome.win  { color: var(--firefly); animation: cheer 0.6s ease 0.2s; }
+  .outcome.lose { color: var(--lose); }
+  .outcome.draw { color: var(--cream); }
+
+  @keyframes pop {
+    0%   { transform: scale(0.6); opacity: 0; }
+    70%  { transform: scale(1.08); opacity: 1; }
+    100% { transform: scale(1); }
+  }
+  @keyframes cheer {
+    0%, 100% { transform: scale(1) rotate(0); }
+    30% { transform: scale(1.25) rotate(-4deg); }
+    60% { transform: scale(1.1) rotate(4deg); }
+  }
+
+  /* 졌을 때: 화면 흔들림 + 붉은 번쩍임 */
+  .shake { animation: shake 0.5s cubic-bezier(.36, .07, .19, .97); }
+  @keyframes shake {
+    10%, 90% { transform: translateX(-2px); }
+    20%, 80% { transform: translateX(5px) rotate(0.4deg); }
+    30%, 50%, 70% { transform: translateX(-10px) rotate(-0.6deg); }
+    40%, 60% { transform: translateX(10px) rotate(0.6deg); }
+  }
+  .flash {
+    position: fixed;
+    inset: 0;
+    z-index: 25;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(255, 70, 50, 0.45) 100%);
+    opacity: 0;
+  }
+  .flash.on { animation: flash 0.5s ease; }
+  @keyframes flash {
+    0% { opacity: 0; }
+    25% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* 최종 화면 */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(5, 14, 10, 0.8);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s;
+  }
+  .overlay.show {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .card {
+    position: relative;
+    width: 100%;
+    max-width: 440px;
+    padding: 36px 24px 32px;
+    text-align: center;
+    background: linear-gradient(180deg, var(--wood), #774b28);
+    border: 5px solid var(--wood-dark);
+    border-radius: 28px;
+    box-shadow: 0 10px 0 var(--wood-dark), 0 0 60px rgba(255, 207, 63, 0.35);
+    transform: scale(0.7);
+    transition: transform 0.45s cubic-bezier(.2, 1.6, .4, 1);
+  }
+  .overlay.show .card { transform: scale(1); }
+  .card .bulbs.top    { top: 12px; }
+  .card .bulbs.bottom { bottom: 12px; }
+  .card .bulbs span   { animation-duration: 0.4s; }
+
+  .trophy-wrap {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    margin: 0 auto 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  /* 트로피 뒤 금빛 후광 */
+  .trophy-wrap::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 207, 63, 0.9) 0%, rgba(255, 207, 63, 0.25) 45%, transparent 70%);
+    animation: glow 1.4s ease-in-out infinite;
+  }
+  .trophy {
+    position: relative;
+    font-size: 100px;
+    line-height: 1;
+    animation: trophy 1.4s ease-in-out infinite;
+  }
+  .sparkle {
+    position: absolute;
+    font-size: 22px;
+    animation: twinkle 1.2s ease-in-out infinite;
+  }
+  /* 첫 번째 span은 트로피라서 2번째부터 */
+  .sparkle:nth-of-type(2) { top: 4px;  left: 6px; }
+  .sparkle:nth-of-type(3) { top: 18px; right: 0;  animation-delay: 0.4s; }
+  .sparkle:nth-of-type(4) { bottom: 8px; left: 0; animation-delay: 0.8s; }
+  .sparkle:nth-of-type(5) { bottom: 0; right: 10px; animation-delay: 0.2s; }
+
+  @keyframes glow {
+    0%, 100% { transform: scale(0.9); opacity: 0.8; }
+    50% { transform: scale(1.15); opacity: 1; }
+  }
+  @keyframes trophy {
+    0%, 100% { transform: translateY(0) rotate(-4deg); }
+    50% { transform: translateY(-10px) rotate(4deg); }
+  }
+  @keyframes twinkle {
+    0%, 100% { transform: scale(0.5); opacity: 0.3; }
+    50% { transform: scale(1.2); opacity: 1; }
+  }
+
+  .card h2 {
+    font-size: clamp(40px, 12vw, 56px);
+    font-weight: 400;
+    color: var(--gold);
+    text-shadow:
+      3px 3px 0 var(--wood-dark),
+      0 0 16px rgba(255, 207, 63, 0.8);
+  }
+  .card .final-score {
+    margin: 6px 0 4px;
+    font-family: "Orbitron", sans-serif;
+    font-weight: 900;
+    font-size: 32px;
+    color: var(--cream);
+    text-shadow: 2px 2px 0 var(--wood-dark);
+  }
+  .card p {
+    font-size: 20px;
+    margin-bottom: 22px;
+    text-shadow: 2px 2px 0 var(--wood-dark);
+  }
+
+  .card.over { box-shadow: 0 10px 0 var(--wood-dark), 0 0 40px rgba(255, 179, 161, 0.3); }
+  .card.over h2 {
+    color: var(--lose);
+    text-shadow: 3px 3px 0 var(--wood-dark), 0 0 14px rgba(255, 179, 161, 0.6);
+  }
+  .card.over .trophy-wrap::before { background: radial-gradient(circle, rgba(255, 179, 161, 0.45) 0%, transparent 65%); }
+
+  .again {
+    font-family: inherit;
+    font-size: 24px;
+    padding: 14px 32px;
+    color: var(--wood-dark);
+    background: var(--firefly);
+    border: 4px solid var(--wood-dark);
+    border-radius: 16px;
+    box-shadow: 0 6px 0 var(--wood-dark), 0 0 20px rgba(233, 255, 138, 0.6);
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .again:hover,
+  .again:focus-visible {
+    outline: none;
+    transform: translateY(-3px) scale(1.04);
+    box-shadow: 0 9px 0 var(--wood-dark), 0 0 30px rgba(233, 255, 138, 0.9);
+  }
+  .again:active {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 var(--wood-dark);
+  }
+
+  /* 게임 화면의 다시하기 버튼 */
+  .reset {
+    font-family: inherit;
+    font-size: 20px;
+    padding: 10px 26px;
+    color: var(--cream);
+    background: linear-gradient(180deg, var(--wood), #774b28);
+    border: 3px solid var(--wood-dark);
+    border-radius: 14px;
+    box-shadow: 0 5px 0 var(--wood-dark), 0 8px 14px rgba(0, 0, 0, 0.35);
+    text-shadow: 2px 2px 0 var(--wood-dark);
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  }
+  .reset:focus-visible {
+    outline: none;
+    transform: translateY(-3px);
+    filter: brightness(1.12);
+    box-shadow: 0 8px 0 var(--wood-dark), 0 10px 18px rgba(0, 0, 0, 0.4);
+  }
+  @media (hover: hover) {
+    .reset:hover {
+      transform: translateY(-3px);
+      filter: brightness(1.12);
+      box-shadow: 0 8px 0 var(--wood-dark), 0 10px 18px rgba(0, 0, 0, 0.4);
+    }
+  }
+  .reset:focus-visible {
+    border-color: var(--firefly);
+  }
+  .reset:active {
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 var(--wood-dark);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="moon"></div>
+
+  <!-- 겹겹이 나무 실루엣 -->
+  <div class="forest">
+    <svg viewBox="0 0 1200 400" preserveAspectRatio="none" aria-hidden="true">
+      <path fill="var(--tree-far)" d="M0 220 L40 140 L80 220 L110 120 L150 220 L190 150 L230 220 L270 100 L320 220 L360 160 L400 220 L450 110 L500 220 L540 150 L580 220 L630 120 L680 220 L720 140 L760 220 L810 100 L860 220 L900 150 L940 220 L990 120 L1040 220 L1080 140 L1120 220 L1160 130 L1200 220 L1200 400 L0 400 Z"/>
+      <path fill="var(--tree-mid)" d="M0 290 L50 190 L100 290 L150 170 L210 290 L260 200 L310 290 L370 160 L430 290 L480 200 L530 290 L590 170 L650 290 L700 190 L750 290 L810 160 L870 290 L920 200 L970 290 L1030 170 L1090 290 L1140 190 L1200 290 L1200 400 L0 400 Z"/>
+      <path fill="var(--tree-near)" d="M0 350 L70 230 L140 350 L200 250 L260 350 L340 210 L420 350 L480 260 L540 350 L620 220 L700 350 L760 250 L820 350 L900 210 L980 350 L1040 250 L1100 350 L1160 230 L1200 300 L1200 400 L0 400 Z"/>
+    </svg>
+  </div>
+
+  <canvas id="fireflies"></canvas>
+  <canvas id="confetti"></canvas>
+  <div class="flash" id="flash"></div>
+
+  <main class="container" id="stage">
+    <nav class="home-nav">
+      <a class="home" href="index.html">🏠 처음으로</a>
+    </nav>
+
+    <div class="sign" id="sign">
+      <div class="bulbs top" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      <h1>가위바위보!</h1>
+      <div class="bulbs bottom" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    </div>
+
+    <div class="scoreboard" aria-label="점수판">
+      <div class="side me">
+        <span class="who">나</span>
+        <div class="pips" id="myPips"><span></span><span></span><span></span></div>
+      </div>
+      <div class="score-wrap">
+        <div class="score" aria-live="polite"><span id="myScore">0</span> : <span id="comScore">0</span></div>
+        <div class="round" id="round">ROUND 1 · 먼저 3승!</div>
+      </div>
+      <div class="side com">
+        <span class="who">컴퓨터</span>
+        <div class="pips" id="comPips"><span></span><span></span><span></span></div>
+      </div>
+    </div>
+
+    <div class="buttons">
+      <button class="btn" data-choice="scissors">
+        <span class="emoji">✌️</span>
+        <span class="label">가위</span>
+      </button>
+      <button class="btn" data-choice="rock">
+        <span class="emoji">✊</span>
+        <span class="label">바위</span>
+      </button>
+      <button class="btn" data-choice="paper">
+        <span class="emoji">✋</span>
+        <span class="label">보</span>
+      </button>
+    </div>
+
+    <div class="result" id="result" aria-live="polite">
+      <span class="hint">버튼을 눌러 시작! 🌲</span>
+    </div>
+
+    <button class="reset" id="reset">다시하기 🔄</button>
+  </main>
+
+  <!-- 최종 승리 / 게임 오버 화면 -->
+  <div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="endTitle">
+    <div class="card" id="endCard">
+      <div class="bulbs top" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      <div class="trophy-wrap" aria-hidden="true">
+        <span class="trophy" id="endEmoji">🏆</span>
+        <span class="sparkle">✨</span>
+        <span class="sparkle">⭐</span>
+        <span class="sparkle">⭐</span>
+        <span class="sparkle">✨</span>
+      </div>
+      <h2 id="endTitle">최종 승리!</h2>
+      <div class="final-score" id="finalScore">3 : 0</div>
+      <p id="endText">숲속 가위바위보 챔피언! 🎉</p>
+      <button class="again" id="again">다시 하기 🔄</button>
+      <div class="bulbs bottom" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    </div>
+  </div>
+
+<script>
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // 반딧불 배경 (장식용)
+  const canvas = document.getElementById('fireflies');
+  const ctx = canvas.getContext('2d');
+  let flies = [];
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    confettiCanvas.width = window.innerWidth;
+    confettiCanvas.height = window.innerHeight;
+    const count = Math.max(15, Math.floor((canvas.width * canvas.height) / 25000));
+    flies = Array.from({ length: count }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 2 + 1,
+      phase: Math.random() * Math.PI * 2,
+      speed: Math.random() * 0.03 + 0.01,
+      vx: (Math.random() - 0.5) * 0.4,
+      vy: (Math.random() - 0.5) * 0.4
+    }));
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const f of flies) {
+      f.phase += f.speed;
+      f.x += f.vx + Math.sin(f.phase) * 0.2;
+      f.y += f.vy + Math.cos(f.phase) * 0.2;
+      if (f.x < 0) f.x = canvas.width;
+      if (f.x > canvas.width) f.x = 0;
+      if (f.y < 0) f.y = canvas.height;
+      if (f.y > canvas.height) f.y = 0;
+
+      const alpha = 0.2 + 0.8 * Math.abs(Math.sin(f.phase));
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(233, 255, 138, ${alpha})`;
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = '#e9ff8a';
+      ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+
+  // 색종이 (폭죽)
+  const confettiCanvas = document.getElementById('confetti');
+  const cctx = confettiCanvas.getContext('2d');
+  const COLORS = ['#e9ff8a', '#7fb35a', '#fff4d6', '#ff5fa2', '#ffcf3f', '#7ed6ff', '#ffb36b'];
+  let pieces = [];
+  let confettiRunning = false;
+
+  function burst(x, y, count) {
+    if (reduceMotion) count = Math.floor(count / 4);
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const power = Math.random() * 12 + 4;
+      pieces.push({
+        x, y,
+        vx: Math.cos(angle) * power,
+        vy: Math.sin(angle) * power - 6,
+        w: Math.random() * 8 + 5,
+        h: Math.random() * 5 + 3,
+        rot: Math.random() * Math.PI,
+        vr: (Math.random() - 0.5) * 0.4,
+        wobble: Math.random() * Math.PI * 2,
+        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+        life: 1
+      });
+    }
+    if (!confettiRunning) {
+      confettiRunning = true;
+      requestAnimationFrame(drawConfetti);
+    }
+  }
+
+  function drawConfetti() {
+    cctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+    for (const p of pieces) {
+      p.vx *= 0.98;
+      p.vy = p.vy * 0.98 + 0.3;
+      p.wobble += 0.15;
+      p.x += p.vx + Math.sin(p.wobble) * 0.8;
+      p.y += p.vy;
+      p.rot += p.vr;
+      if (p.y > confettiCanvas.height * 0.7) p.life -= 0.02;
+
+      cctx.save();
+      cctx.globalAlpha = Math.max(p.life, 0);
+      cctx.translate(p.x, p.y);
+      cctx.rotate(p.rot);
+      cctx.scale(1, Math.cos(p.wobble));
+      cctx.fillStyle = p.color;
+      cctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      cctx.restore();
+    }
+    pieces = pieces.filter(p => p.life > 0 && p.y < confettiCanvas.height + 40);
+    if (pieces.length) {
+      requestAnimationFrame(drawConfetti);
+    } else {
+      confettiRunning = false;
+      cctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+    }
+  }
+
+  // 최종 승리용 연속 폭죽
+  function fireworks() {
+    const w = confettiCanvas.width;
+    const h = confettiCanvas.height;
+    const shots = [
+      [w * 0.5, h * 0.35], [w * 0.2, h * 0.3], [w * 0.8, h * 0.3],
+      [w * 0.35, h * 0.2], [w * 0.65, h * 0.2], [w * 0.5, h * 0.5]
+    ];
+    shots.forEach(([x, y], i) => setTimeout(() => burst(x, y, 90), i * 280));
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+  draw();
+
+  // 가위바위보 게임
+  const WIN_TARGET = 3;
+  const HANDS = {
+    scissors: { emoji: '✌️', name: '가위', beats: 'paper' },
+    rock:     { emoji: '✊', name: '바위', beats: 'scissors' },
+    paper:    { emoji: '✋', name: '보',   beats: 'rock' }
+  };
+  const OUTCOMES = {
+    win:  '이겼다! 🎉',
+    lose: '졌다! 😢',
+    draw: '비겼다! 🤝'
+  };
+
+  const stage = document.getElementById('stage');
+  const sign = document.getElementById('sign');
+  const flash = document.getElementById('flash');
+  const resultEl = document.getElementById('result');
+  const myScoreEl = document.getElementById('myScore');
+  const comScoreEl = document.getElementById('comScore');
+  const roundEl = document.getElementById('round');
+  const myPips = document.querySelectorAll('#myPips span');
+  const comPips = document.querySelectorAll('#comPips span');
+  const buttons = document.querySelectorAll('.btn');
+  const overlay = document.getElementById('overlay');
+  const endCard = document.getElementById('endCard');
+
+  let myScore = 0;
+  let comScore = 0;
+  let round = 1;
+  let endTimer = null;
+
+  // 같은 애니메이션을 연달아 다시 실행
+  function replay(el, className) {
+    el.classList.remove(className);
+    void el.offsetWidth;
+    el.classList.add(className);
+  }
+
+  function updateScoreboard(outcome) {
+    myScoreEl.textContent = myScore;
+    comScoreEl.textContent = comScore;
+    myPips.forEach((p, i) => p.classList.toggle('on', i < myScore));
+    comPips.forEach((p, i) => p.classList.toggle('on', i < comScore));
+    roundEl.textContent = `ROUND ${round} · 먼저 ${WIN_TARGET}승!`;
+    if (outcome === 'win')  replay(myScoreEl, 'bump');
+    if (outcome === 'lose') replay(comScoreEl, 'bump');
+  }
+
+  function celebrate() {
+    const box = resultEl.getBoundingClientRect();
+    burst(box.left + box.width / 2, box.top + box.height / 2, 120);
+    sign.classList.add('party');
+    setTimeout(() => sign.classList.remove('party'), 1200);
+  }
+
+  function hurt() {
+    if (!reduceMotion) replay(stage, 'shake');
+    replay(flash, 'on');
+  }
+
+  function play(mine) {
+    const keys = Object.keys(HANDS);
+    const com = keys[Math.floor(Math.random() * keys.length)];
+
+    let outcome;
+    if (mine === com) outcome = 'draw';
+    else if (HANDS[mine].beats === com) outcome = 'win';
+    else outcome = 'lose';
+
+    if (outcome === 'win') myScore++;
+    if (outcome === 'lose') comScore++;
+    round++;
+
+    resultEl.className = `result ${outcome}`;
+    resultEl.innerHTML = `
+      <div class="result-inner">
+        <div class="versus">
+          <div class="hand">
+            <span class="emoji">${HANDS[mine].emoji}</span>
+            <span class="who">나 · ${HANDS[mine].name}</span>
+          </div>
+          <span class="vs">VS</span>
+          <div class="hand">
+            <span class="emoji">${HANDS[com].emoji}</span>
+            <span class="who">컴퓨터 · ${HANDS[com].name}</span>
+          </div>
+        </div>
+        <div class="outcome ${outcome}">${OUTCOMES[outcome]}</div>
+      </div>`;
+
+    updateScoreboard(outcome);
+    if (outcome === 'win') celebrate();
+    if (outcome === 'lose') hurt();
+
+    if (myScore === WIN_TARGET || comScore === WIN_TARGET) {
+      buttons.forEach(b => b.disabled = true);
+      endTimer = setTimeout(() => showEnd(myScore === WIN_TARGET), 900);
+    }
+  }
+
+  function showEnd(victory) {
+    endCard.classList.toggle('over', !victory);
+    document.getElementById('endEmoji').textContent = victory ? '🏆' : '😵';
+    document.getElementById('endTitle').textContent = victory ? '최종 승리!' : '게임 오버';
+    document.getElementById('finalScore').textContent = `${myScore} : ${comScore}`;
+    document.getElementById('endText').textContent = victory
+      ? '숲속 가위바위보 챔피언! 🎉'
+      : `컴퓨터가 먼저 ${WIN_TARGET}승 했어요… 한 번 더! 💪`;
+    document.getElementById('again').textContent = victory ? '다시 하기 🔄' : '다시 도전 💪';
+    document.querySelectorAll('.sparkle').forEach(s => s.hidden = !victory);
+
+    overlay.classList.add('show');
+    document.getElementById('again').focus();
+    if (victory) fireworks();
+  }
+
+  function resetGame() {
+    // 최종 화면이 뜨기 직전에 눌러도 화면이 다시 뜨지 않게
+    clearTimeout(endTimer);
+    myScore = 0;
+    comScore = 0;
+    round = 1;
+    updateScoreboard();
+    resultEl.className = 'result';
+    resultEl.innerHTML = '<span class="hint">버튼을 눌러 시작! 🌲</span>';
+    overlay.classList.remove('show');
+    buttons.forEach(b => b.disabled = false);
+    buttons[0].focus();
+  }
+
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => play(btn.dataset.choice));
+  });
+  document.getElementById('again').addEventListener('click', resetGame);
+  document.getElementById('reset').addEventListener('click', resetGame);
+</script>
+</body>
+</html>

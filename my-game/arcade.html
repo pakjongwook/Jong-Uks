@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Noto+Sans+KR:wght@700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  ::selection { background: #ff2bd6; color: #05060f; }
+
+  html {
+    background: #05060f;
+  }
+
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    background: radial-gradient(ellipse at center, #0b0f2a 0%, #05060f 70%, #000 100%) fixed;
+    font-family: 'Orbitron', 'Noto Sans KR', sans-serif;
+  }
+
+  /* 별 배경 */
+  #stars {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+  }
+
+  /* 처음으로 (자기소개 페이지) */
+  .home {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 2;
+    padding: 8px 16px;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #00f0ff;
+    text-decoration: none;
+    border: 2px solid #00f0ff;
+    border-radius: 10px;
+    transition: color 0.2s ease, background 0.2s ease;
+  }
+  .home:focus-visible { outline: 2px dashed #fff; outline-offset: 4px; }
+  @media (hover: hover) {
+    .home:hover { color: #05060f; background: #00f0ff; }
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 60px;
+    padding: 80px 16px 48px;
+  }
+
+  /* 네온 제목 */
+  h1 {
+    font-size: clamp(48px, 11vw, 140px);
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: 0.08em;
+    text-align: center;
+    text-shadow:
+      0 0 5px #fff,
+      0 0 10px #fff,
+      0 0 20px #ff2bd6,
+      0 0 40px #ff2bd6,
+      0 0 80px #ff2bd6,
+      0 0 120px #ff2bd6;
+    animation: flicker 4s infinite alternate;
+  }
+
+  @keyframes flicker {
+    0%, 18%, 22%, 25%, 53%, 57%, 100% {
+      opacity: 1;
+      text-shadow:
+        0 0 5px #fff,
+        0 0 10px #fff,
+        0 0 20px #ff2bd6,
+        0 0 40px #ff2bd6,
+        0 0 80px #ff2bd6,
+        0 0 120px #ff2bd6;
+    }
+    20%, 24%, 55% {
+      opacity: 0.85;
+      text-shadow: 0 0 4px #ff2bd6;
+    }
+  }
+
+  /* 버튼 */
+  .buttons {
+    display: flex;
+    gap: 28px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .btn {
+    --c: #00f0ff;
+    min-width: 170px;
+    padding: 18px 36px;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--c);
+    background: transparent;
+    border: 2px solid var(--c);
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 0 6px var(--c), inset 0 0 6px var(--c);
+    text-shadow: 0 0 6px var(--c);
+    transition: all 0.25s ease;
+  }
+
+  .btn.easy   { --c: #39ff14; }
+  .btn.normal { --c: #00f0ff; }
+  .btn.hard   { --c: #ff3b3b; }
+
+  /* 켜진 버튼: 마우스를 올렸을 때, 키보드로 골랐을 때, 선택했을 때 */
+  .btn:focus-visible,
+  .btn[aria-pressed="true"] {
+    color: #05060f;
+    background: var(--c);
+    text-shadow: none;
+    outline: none;
+    box-shadow:
+      0 0 10px var(--c),
+      0 0 25px var(--c),
+      0 0 50px var(--c),
+      0 0 90px var(--c);
+  }
+  .btn:focus-visible { transform: translateY(-4px) scale(1.06); }
+  @media (hover: hover) {
+    .btn:hover {
+      color: #05060f;
+      background: var(--c);
+      text-shadow: none;
+      transform: translateY(-4px) scale(1.06);
+      box-shadow:
+        0 0 10px var(--c),
+        0 0 25px var(--c),
+        0 0 50px var(--c),
+        0 0 90px var(--c);
+    }
+  }
+
+  .btn:active {
+    transform: translateY(0) scale(0.98);
+  }
+
+  /* 선택 안내 (게임은 아직 준비 중) */
+  .status {
+    min-height: 1.6em;
+    margin-top: -32px;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: #cfd8ff;
+    text-align: center;
+  }
+
+  @media (max-width: 480px) {
+    .container { gap: 40px; }
+    .btn { min-width: 0; width: min(100%, 240px); }
+    .buttons { flex-direction: column; align-items: center; gap: 16px; width: 100%; }
+    .status { margin-top: -16px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+  <canvas id="stars" aria-hidden="true"></canvas>
+
+  <a class="home" href="index.html">◀ 처음으로</a>
+
+  <main class="container">
+    <h1>GAME START</h1>
+    <div class="buttons" role="group" aria-label="난이도">
+      <button class="btn easy" type="button" aria-pressed="false">쉬움</button>
+      <button class="btn normal" type="button" aria-pressed="false">보통</button>
+      <button class="btn hard" type="button" aria-pressed="false">어려움</button>
+    </div>
+    <p class="status" id="status" aria-live="polite"></p>
+  </main>
+
+<script>
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // 반짝이는 별 배경
+  const canvas = document.getElementById('stars');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const count = Math.floor((canvas.width * canvas.height) / 3500);
+    stars = Array.from({ length: count }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 1.6 + 0.3,
+      phase: Math.random() * Math.PI * 2,
+      speed: Math.random() * 0.03 + 0.008,
+      drift: Math.random() * 0.15 + 0.02
+    }));
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const s of stars) {
+      s.phase += s.speed;
+      s.y += s.drift;
+      if (s.y > canvas.height) { s.y = 0; s.x = Math.random() * canvas.width; }
+
+      const alpha = 0.3 + 0.7 * Math.abs(Math.sin(s.phase));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+      ctx.shadowBlur = s.r * 6;
+      ctx.shadowColor = '#bcdcff';
+      ctx.fill();
+    }
+    // 움직임 줄이기 설정이면 별을 한 번만 그려요
+    if (!reduceMotion) requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', () => { resize(); if (reduceMotion) draw(); });
+  resize();
+  draw();
+
+  // 난이도 버튼 (게임은 아직 준비 중이라 고른 난이도만 보여 줘요)
+  const buttons = document.querySelectorAll('.btn');
+  const statusEl = document.getElementById('status');
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      buttons.forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+      statusEl.textContent = `${btn.textContent} 난이도 선택! 게임은 준비 중이에요 🛠️`;
+    });
+  });
+</script>
+</body>
+</html>

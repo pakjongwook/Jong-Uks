@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>두더지 클럽</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --room: #22170f;
+    --walnut: #5b4127;
+    --walnut-light: #7a5836;
+    --walnut-dark: #3a2817;
+    --felt: #150e09;
+    --oxblood: #6b1f22;
+    --oxblood-deep: #4a1316;
+    --bottle: #1f4a32;
+    --bottle-deep: #133222;
+    --night: #141210;
+    --night-deep: #0a0908;
+    --gold: #e9c46a;
+    --gold-soft: #b89a55;
+    --gold-deep: #8a6d2c;
+    --flame: #ff8a2a;
+    --flame-hot: #ffd27a;
+    --match-head: #b8322a;
+    --stick: #d9b77e;
+    --char: #2a2420;
+    --striker: #7d7770;
+    --striker-dark: #57524c;
+    --mole: #7a4f33;
+    --mole-dark: #4e3020;
+    --snout: #f2a3a0;
+    --ink-print: #2b1d12;
+    --ease-out: cubic-bezier(.16, 1, .3, 1);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  ::selection { background: var(--gold); color: var(--night); }
+
+  html { -webkit-tap-highlight-color: transparent; scrollbar-color: var(--walnut) var(--room); }
+
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    font-family: "Gowun Batang", "Malgun Gothic", serif;
+    color: var(--gold);
+    background-color: var(--room);
+    /* 램프 하나 아래 놓인 서랍 */
+    background-image: radial-gradient(120% 70% at 50% 0%, #3b2818 0%, var(--room) 70%);
+    display: flex;
+    justify-content: center;
+  }
+
+  .page {
+    width: min(100%, 460px);
+    padding: 12px 16px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  :focus-visible { outline: 3px solid var(--flame-hot); outline-offset: 3px; }
+
+  /* ── 처음으로 ── */
+  .back {
+    align-self: flex-start;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--gold-soft);
+    text-decoration: none;
+    padding: 6px 2px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .back:hover { color: var(--gold); }
+
+  /* ── 제목 ── */
+  header { text-align: center; }
+  h1 {
+    font-family: "Black Han Sans", sans-serif;
+    font-weight: 400;
+    font-size: 44px;
+    line-height: 1;
+    letter-spacing: .02em;
+    color: var(--gold);
+  }
+  .tagline { margin-top: 6px; font-size: 15px; color: var(--gold-soft); }
+
+  /* ── 점수판 ── */
+  .hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 0 6px;
+  }
+  .stat { display: flex; flex-direction: column; gap: 2px; }
+  .stat.right { text-align: right; }
+  .stat.mid { text-align: center; }
+  .stat.mid .stat-value.on { color: var(--flame-hot); }
+  .stat-label { font-size: 14px; font-weight: 700; color: var(--gold-soft); }
+  .stat-value {
+    font-family: "Black Han Sans", sans-serif;
+    font-size: 40px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-value small { font-family: "Gowun Batang", serif; font-size: 16px; font-weight: 700; margin-left: 3px; }
+  .stat-value.bump { animation: bump .35s var(--ease-out); }
+  @keyframes bump { 40% { transform: scale(1.2); color: var(--flame-hot); } }
+
+  /* ── 성냥 30개 = 남은 시간 ── */
+  .matches {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    height: 38px;
+    padding: 0 6px;
+  }
+  .match {
+    position: relative;
+    width: 5px;
+    height: 30px;
+    background: var(--stick);
+    border-radius: 1px;
+    transform-origin: 50% 100%;
+    transition: background .6s, height .6s var(--ease-out), transform .6s var(--ease-out);
+  }
+  .match::before {
+    content: "";
+    position: absolute;
+    left: -2px; top: -6px;
+    width: 9px; height: 10px;
+    border-radius: 50% 50% 45% 45%;
+    background: var(--match-head);
+    transition: background .4s;
+  }
+  .match.lit::before {
+    background: var(--flame-hot);
+    box-shadow: 0 -4px 10px 2px var(--flame), 0 0 3px var(--flame-hot);
+    animation: flicker .25s infinite alternate;
+  }
+  @keyframes flicker { to { transform: scaleY(1.25) translateY(-1px); } }
+  .match.burnt {
+    background: linear-gradient(var(--char) 0 55%, var(--stick) 55%);
+    height: 22px;
+    transform: rotate(-9deg);
+  }
+  .match.burnt::before { background: var(--char); width: 5px; left: 0; top: -2px; height: 4px; }
+
+  /* ── 서랍 ── */
+  .drawer {
+    position: relative;
+    padding: 14px;
+    background: var(--felt);
+    border: 9px solid var(--walnut);
+    border-top-color: var(--walnut-light);
+    border-bottom-color: var(--walnut-dark);
+    border-radius: 6px;
+    box-shadow: inset 0 12px 22px rgba(0,0,0,.85), 0 18px 30px rgba(0,0,0,.5);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  /* ── 성냥갑 ── */
+  .book {
+    position: relative;
+    aspect-ratio: .76;
+    border: 0;
+    padding: 0;
+    background: none;
+    font: inherit;
+    color: inherit;
+    cursor: default;
+    perspective: 500px;
+    border-radius: 3px;
+    /* 펠트 위에 놓인 그림자 */
+    box-shadow: 0 6px 10px rgba(0,0,0,.6), 0 1px 2px rgba(0,0,0,.5);
+  }
+  .book.up { cursor: pointer; z-index: 2; }
+
+  /* 열렸을 때 보이는 안쪽: 성냥 머리 한 줄과 두더지 */
+  .inside {
+    position: absolute;
+    inset: 0 0 18% 0;
+    overflow: hidden;
+    border-radius: 3px 3px 0 0;
+    background: #2b1d12;
+    box-shadow: inset 0 6px 10px rgba(0,0,0,.7);
+  }
+  .mole {
+    position: absolute;
+    left: 50%;
+    bottom: 6%;
+    width: 84%;
+    transform: translate(-50%, 105%);
+    transition: transform .22s var(--ease-out);
+  }
+  .mole { color: var(--stick); }
+  .mole .crown { display: none; }
+  .book.up .mole { transform: translate(-50%, 0); transition-delay: .08s; }
+
+  /* 황금두더지: 왕관을 쓰고 반짝인다 */
+  .book.gold .mole { color: #ffd84a; filter: drop-shadow(0 0 6px rgba(255, 216, 74, .85)); }
+  .book.gold .mole .crown { display: inline; }
+  .book.gold .inside::before { background: linear-gradient(to top, rgba(255,216,74,.55), rgba(255,216,74,0) 80%); }
+  .book.bonk .mole { transform: translate(-50%, 105%) scaleY(.7); transition: transform .14s ease-in; }
+  .comb {
+    position: absolute;
+    left: 6%; right: 6%; bottom: 0;
+    height: 30%;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  .comb i {
+    width: 9%;
+    height: 100%;
+    background: var(--stick);
+    border-radius: 40% 40% 0 0 / 22% 22% 0 0;
+    box-shadow: inset 0 9px 0 var(--match-head);
+  }
+
+  /* 앞 표지: 위쪽 접힘을 축으로 열린다 */
+  .flap {
+    position: absolute;
+    inset: 0 0 18% 0;
+    transform-origin: 50% 0;
+    transform-style: preserve-3d;
+    transition: transform .3s var(--ease-out);
+  }
+  .book.up .flap { transform: rotateX(-104deg); }
+  .book.bonk .flap { transition-duration: .16s; transition-timing-function: ease-in; }
+  .face, .back-face {
+    position: absolute;
+    inset: 0;
+    border-radius: 3px 3px 0 0;
+    backface-visibility: hidden;
+  }
+  .face {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9% 6% 7%;
+    background: var(--cover);
+    box-shadow: inset 0 0 0 2px var(--cover-deep), inset 0 2px 0 rgba(255,255,255,.08);
+    text-align: center;
+  }
+  /* 표지 안쪽 인쇄 */
+  .back-face {
+    transform: rotateX(180deg);
+    background: var(--cover-deep);
+    box-shadow: inset 0 0 0 2px rgba(0,0,0,.4), inset 0 0 0 4px var(--gold-deep);
+    display: grid;
+    place-items: center;
+    padding: 10%;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.4;
+    text-align: center;
+    color: var(--gold);
+    word-break: keep-all;
+  }
+  .no { font-size: 11px; font-weight: 700; letter-spacing: .12em; color: var(--gold-soft); }
+  .orn { width: 46%; height: auto; color: var(--gold); }
+  .name {
+    font-size: clamp(13px, 3.6vw, 16px);
+    font-weight: 700;
+    line-height: 1.15;
+    color: var(--gold);
+    text-shadow: 0 1px 0 rgba(0,0,0,.45);
+    word-break: keep-all;
+  }
+  .tel { font-size: 11px; letter-spacing: .1em; color: var(--gold-soft); }
+
+  /* 마찰 띠 */
+  .strip {
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 18%;
+    background-color: var(--cover-deep);
+    border-radius: 0 0 3px 3px;
+    padding: 0 7%;
+    display: flex;
+    align-items: center;
+  }
+  .strip::before {
+    content: "";
+    flex: 1;
+    height: 46%;
+    border-radius: 1px;
+    background-color: var(--striker);
+    box-shadow: inset 0 -1px 0 var(--striker-dark);
+  }
+
+  .book.c0 { --cover: var(--oxblood); --cover-deep: var(--oxblood-deep); }
+  .book.c1 { --cover: var(--bottle); --cover-deep: var(--bottle-deep); }
+  .book.c2 { --cover: var(--night); --cover-deep: var(--night-deep); }
+
+  /* 열린 성냥갑만 주황 불빛: 안쪽 성냥 머리에 불이 붙고 그 빛이 표지 안을 비춘다 */
+  .book.up .comb i { box-shadow: inset 0 9px 0 var(--flame); }
+  .book.up .comb i:nth-child(odd) { box-shadow: inset 0 9px 0 var(--flame-hot); }
+  .inside::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(255,138,42,.38), rgba(255,138,42,0) 70%);
+    opacity: 0;
+    transition: opacity .25s;
+  }
+  .book.up .inside::before { opacity: 1; }
+
+  /* 잡았을 때: 성냥 긋는 불꽃 */
+  .spark {
+    position: absolute;
+    left: 50%; top: 42%;
+    width: 120%;
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%) scale(.2);
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--flame-hot) 0 18%, var(--flame) 34%, rgba(255,138,42,0) 66%);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 3;
+  }
+  .book.hit .spark { animation: spark .45s var(--ease-out); }
+  @keyframes spark {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(.2); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.15); }
+  }
+  .plus {
+    position: absolute;
+    left: 50%; top: 20%;
+    transform: translateX(-50%);
+    font-family: "Black Han Sans", sans-serif;
+    font-size: 26px;
+    color: var(--flame-hot);
+    text-shadow: 0 2px 6px rgba(0,0,0,.6);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 4;
+  }
+  .plus small { display: block; font-size: 15px; color: var(--gold); white-space: nowrap; }
+  .book.hit .plus { animation: plus .6s var(--ease-out); }
+  .book.hit.goldhit .plus { animation-duration: .9s; }
+  @keyframes plus {
+    0% { opacity: 1; transform: translate(-50%, 6px); }
+    100% { opacity: 0; transform: translate(-50%, -26px); }
+  }
+
+  /* ── 결과: 큰 성냥갑 표지 ── */
+  .veil {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+    background: rgba(12, 8, 5, .72);
+    border-radius: 2px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .3s, visibility 0s .3s;
+    z-index: 10;
+  }
+  .veil.show { opacity: 1; visibility: visible; transition: opacity .3s; }
+  .result {
+    width: min(100%, 270px);
+    background: var(--oxblood);
+    border-radius: 4px;
+    box-shadow: inset 0 0 0 3px var(--oxblood-deep), inset 0 0 0 5px var(--gold-deep), 0 20px 40px rgba(0,0,0,.6);
+    padding: 22px 20px 0;
+    text-align: center;
+    transform: translateY(24px) rotate(-2deg);
+    transition: transform .45s var(--ease-out);
+    overflow: hidden;
+  }
+  .veil.show .result { transform: translateY(0) rotate(-2deg); }
+  .result h2 {
+    font-family: "Black Han Sans", sans-serif;
+    font-weight: 400;
+    font-size: 33px;
+    line-height: 1;
+  }
+  .result .label { margin-top: 14px; font-size: 15px; font-weight: 700; color: var(--gold-soft); }
+  .final {
+    font-family: "Black Han Sans", sans-serif;
+    font-size: 72px;
+    line-height: 1.05;
+    font-variant-numeric: tabular-nums;
+  }
+  .final small { font-family: "Gowun Batang", serif; font-size: 22px; font-weight: 700; margin-left: 4px; }
+  .tally { font-size: 14px; font-weight: 700; color: var(--gold-soft); }
+  .cheer { margin-top: 4px; font-size: 15px; line-height: 1.45; color: #f4dfa8; word-break: keep-all; text-wrap: balance; }
+  #startTitle + .cheer { margin-top: 12px; }
+  .result-strip {
+    margin: 18px -20px 0;
+    padding: 12px 20px 14px;
+    background: var(--oxblood-deep);
+  }
+
+  /* ── 버튼: 마찰 띠 ── */
+  .strike {
+    display: block;
+    width: 100%;
+    min-height: 54px;
+    border: 0;
+    border-radius: 4px;
+    font-family: "Black Han Sans", sans-serif;
+    font-size: 24px;
+    letter-spacing: .04em;
+    color: #1d1a17;
+    background-color: var(--striker);
+    box-shadow: inset 0 -3px 0 var(--striker-dark), 0 6px 14px rgba(0,0,0,.45);
+    cursor: pointer;
+    transition: transform .12s, box-shadow .12s, filter .2s;
+  }
+  .strike:hover { filter: brightness(1.08); }
+  .strike:active { transform: translateY(2px); box-shadow: inset 0 2px 4px rgba(0,0,0,.35); }
+  .strike:disabled { cursor: default; filter: saturate(.4) brightness(.75); transform: none; }
+  .result .strike { min-height: 48px; font-size: 22px; }
+
+  /* ── 게임 전 조작: 난이도 + 시작 ── */
+  .controls { display: flex; flex-direction: column; gap: 10px; }
+  .controls.away { visibility: hidden; }
+  .levels {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    border: 0;
+  }
+  .levels legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .level input { position: absolute; opacity: 0; pointer-events: none; }
+  .level span {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    padding: 7px 4px 8px;
+    border-radius: 3px;
+    background: var(--cover);
+    box-shadow: inset 0 0 0 2px var(--cover-deep), 0 4px 8px rgba(0,0,0,.45);
+    color: var(--gold-soft);
+    cursor: pointer;
+    transition: transform .15s var(--ease-out), box-shadow .15s, color .15s;
+  }
+  .level b { font-family: "Black Han Sans", sans-serif; font-weight: 400; font-size: 20px; line-height: 1.1; }
+  .level small { font-size: 12px; font-weight: 700; color: #f4dfa8; }
+  .level span:hover { color: var(--gold); }
+  .level input:checked + span {
+    color: var(--gold);
+    box-shadow: inset 0 0 0 2px var(--gold), 0 4px 8px rgba(0,0,0,.45);
+    transform: translateY(-3px);
+  }
+  .level input:focus-visible + span { outline: 3px solid var(--flame-hot); outline-offset: 3px; }
+  .level.easy { --cover: var(--bottle); --cover-deep: var(--bottle-deep); }
+  .level.normal { --cover: var(--oxblood); --cover-deep: var(--oxblood-deep); }
+  .level.hard { --cover: var(--night); --cover-deep: #2a2622; }
+
+  .change {
+    display: block;
+    margin: 10px auto 0;
+    padding: 4px 8px;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--gold);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    cursor: pointer;
+  }
+
+  /* 키 작은 휴대폰: 서랍이 한 화면에 들어오게 */
+  @media (max-height: 720px) {
+    .page { gap: 8px; padding-top: 6px; }
+    h1 { font-size: 36px; }
+    .tagline { display: none; }
+    .stat-value { font-size: 32px; }
+    .drawer { padding: 10px; border-width: 7px; }
+    .grid { gap: 9px; }
+    .book { aspect-ratio: .9; }
+    .orn { width: 38%; }
+    .tel { display: none; }
+    .controls { gap: 8px; }
+    .level span { padding: 5px 4px 6px; }
+    .level small { display: none; }
+    .controls .strike { min-height: 46px; font-size: 22px; }
+  }
+  @media (max-height: 680px) {
+    .book { aspect-ratio: 1.02; }
+    .face { padding-top: 6%; }
+  }
+
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; transition-delay: 0s !important; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="mole" viewBox="0 -16 100 108">
+      <!-- 표지 인쇄처럼 색 한 판 + 잉크 한 판 (색은 .mole의 color) -->
+
+      <path d="M12 92 C10 46 26 14 50 14 C74 14 90 46 88 92 Z" fill="currentColor"/>
+      <g fill="none" stroke="var(--ink-print)" stroke-linecap="round">
+        <ellipse cx="50" cy="54" rx="10" ry="7" stroke-width="3"/>
+        <path d="M20 82 q6 -10 16 -4 M80 82 q-6 -10 -16 -4" stroke-width="4"/>
+        <path d="M44 22 q6 -8 12 0" stroke-width="3"/>
+        <path d="M26 52 l-10 -3 M26 57 l-10 1 M74 52 l10 -3 M74 57 l10 1" stroke-width="2"/>
+      </g>
+      <g fill="var(--ink-print)">
+        <ellipse cx="36" cy="41" rx="4.5" ry="5.5"/>
+        <ellipse cx="64" cy="41" rx="4.5" ry="5.5"/>
+        <ellipse cx="50" cy="51.5" rx="4.5" ry="3.2"/>
+      </g>
+    </symbol>
+    <symbol id="crown" viewBox="0 -16 100 108"><path d="M30 16 L26 -10 L39 2 L50 -14 L61 2 L74 -10 L70 16 Z" fill="var(--flame)" stroke="var(--ink-print)" stroke-width="3" stroke-linejoin="round"/></symbol>
+    <symbol id="o-moon" viewBox="0 0 40 24"><path d="M24 3 a10 10 0 1 0 0 18 a8 8 0 1 1 0 -18 Z" fill="currentColor"/><circle cx="33" cy="6" r="1.6" fill="currentColor"/><circle cx="36" cy="15" r="1.1" fill="currentColor"/><circle cx="6" cy="9" r="1.1" fill="currentColor"/></symbol>
+    <symbol id="o-sky" viewBox="0 0 40 24"><path d="M2 23 V14 h5 V8 h4 v6 h3 V4 h5 v10 h3 V10 h6 V2 h4 v12 h3 V9 h3 v14 Z" fill="currentColor"/></symbol>
+    <symbol id="o-star" viewBox="0 0 40 24"><path d="M20 1 l3 7.5 8 .6 -6.2 5.1 2 7.8 -6.8 -4.3 -6.8 4.3 2 -7.8 -6.2 -5.1 8 -.6 Z" fill="currentColor"/><path d="M2 12 h8 M30 12 h8" stroke="currentColor" stroke-width="1.5"/></symbol>
+  </defs>
+</svg>
+
+<main class="page">
+  <a class="back" href="index.html"><svg width="10" height="12" viewBox="0 0 10 12" aria-hidden="true"><path d="M8 1 L2 6 L8 11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>처음으로</a>
+
+  <header>
+    <h1>두더지 클럽</h1>
+    <p class="tagline">성냥갑을 열고 나온 두더지를 잡아라!</p>
+  </header>
+
+  <section class="hud" aria-label="점수와 남은 시간">
+    <div class="stat">
+      <span class="stat-label">총점</span>
+      <span class="stat-value"><span id="score">0</span><small>점</small></span>
+    </div>
+    <div class="stat mid">
+      <span class="stat-label">현재 콤보</span>
+      <span class="stat-value" id="comboBox"><span id="combo">0</span><small>연속</small></span>
+    </div>
+    <div class="stat right">
+      <span class="stat-label">남은 성냥</span>
+      <span class="stat-value"><span id="time">30</span><small>초</small></span>
+    </div>
+  </section>
+
+  <div class="matches" id="matches" aria-hidden="true"></div>
+
+  <section class="drawer" aria-label="두더지 성냥갑 서랍">
+    <div class="grid" id="grid"></div>
+
+    <div class="veil" id="veil">
+      <div class="result" role="group" aria-labelledby="resultTitle">
+        <h2 id="resultTitle">게임 오버!</h2>
+        <p class="label"><span id="resultLevel">보통</span> · 최종 점수</p>
+        <p class="final"><span id="finalScore">0</span><small>점</small></p>
+        <p class="tally" id="tally"></p>
+        <p class="cheer" id="cheer"></p>
+        <div class="result-strip">
+          <button class="strike again" id="againBtn" type="button">다시 하기</button>
+          <button class="change" id="changeBtn" type="button">난이도 바꾸기</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="controls" id="controls">
+    <fieldset class="levels">
+      <legend>난이도</legend>
+      <label class="level easy"><input type="radio" name="level" value="easy"><span><b>쉬움</b><small>느긋하게</small></span></label>
+      <label class="level normal"><input type="radio" name="level" value="normal" checked><span><b>보통</b><small>기본</small></span></label>
+      <label class="level hard"><input type="radio" name="level" value="hard"><span><b>어려움</b><small>번개처럼</small></span></label>
+    </fieldset>
+    <button class="strike" id="startBtn" type="button">게임 시작</button>
+  </div>
+  <p class="sr" id="announce" aria-live="polite"></p>
+</main>
+
+<script>
+  // 난이도: seconds = 게임 시간(성냥 개수), show = 두더지가 올라와 있는 시간, gap = 다음 두더지까지 쉬는 시간(ms)
+  // 어려움(0.5초·20초)을 기준으로 한 단계마다 0.25초 느긋하고 5초 길게
+  const LEVELS = {
+    // target = 이만큼 이하로 잡으면 두더지들이 약을 올린다
+    easy:   { name: "쉬움",   seconds: 30, show: 1000, gap: [300, 600], target: 10 },
+    normal: { name: "보통",   seconds: 25, show: 750,  gap: [180, 420], target: 20 },
+    hard:   { name: "어려움", seconds: 20, show: 500,  gap: [100, 280], target: 30 },
+  };
+  let level = LEVELS.normal;
+
+  const CLUBS = [
+    ["두더지 다방", "o-moon"], ["흙굴 호텔", "o-sky"], ["땅속 클럽", "o-star"],
+    ["새벽 살롱", "o-star"], ["구멍 바", "o-moon"], ["모래 극장", "o-sky"],
+    ["밤굴 호텔", "o-sky"], ["지하 1층", "o-star"], ["굴뚝 다방", "o-moon"],
+  ];
+
+  const grid = document.getElementById("grid");
+  const matchesEl = document.getElementById("matches");
+  const scoreEl = document.getElementById("score");
+  const timeEl = document.getElementById("time");
+  const startBtn = document.getElementById("startBtn");
+  let usingKeyboard = false;
+  addEventListener("keydown", () => { usingKeyboard = true; });
+  addEventListener("pointerdown", () => { usingKeyboard = false; });
+  const againBtn = document.getElementById("againBtn");
+  const changeBtn = document.getElementById("changeBtn");
+  const controls = document.getElementById("controls");
+  const resultLevelEl = document.getElementById("resultLevel");
+  const comboEl = document.getElementById("combo");
+  const comboBox = document.getElementById("comboBox");
+  const tallyEl = document.getElementById("tally");
+  const veil = document.getElementById("veil");
+  const finalScoreEl = document.getElementById("finalScore");
+  const cheerEl = document.getElementById("cheer");
+  const announce = document.getElementById("announce");
+
+  // 성냥갑 9개
+  const books = CLUBS.map(([name, orn], i) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = `book c${i % 3}`;
+    b.setAttribute("aria-label", `${i + 1}번 성냥갑, 닫혀 있음`);
+    b.innerHTML = `
+      <div class="inside">
+        <svg class="mole" viewBox="0 -16 100 108" aria-hidden="true"><use href="#mole"/><use class="crown" href="#crown"/></svg>
+        <div class="comb" aria-hidden="true">${"<i></i>".repeat(7)}</div>
+      </div>
+      <div class="flap" aria-hidden="true">
+        <div class="face">
+          <span class="no">No.${i + 1}</span>
+          <svg class="orn" viewBox="0 0 40 24"><use href="#${orn}"/></svg>
+          <span class="name">${name}</span>
+          <span class="tel">TEL 000${i + 1}</span>
+        </div>
+        <div class="back-face"><svg class="orn" viewBox="0 0 40 24"><use href="#o-star"/></svg></div>
+      </div>
+      <div class="strip" aria-hidden="true"></div>
+      <span class="spark" aria-hidden="true"></span>
+      <span class="plus" aria-hidden="true">+1</span>`;
+    b.addEventListener("pointerdown", (e) => { e.preventDefault(); whack(i); });
+    b.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); whack(i); }
+    });
+    grid.appendChild(b);
+    return b;
+  });
+
+  // 성냥: 난이도의 게임 시간만큼 (1초에 한 개씩 탄다)
+  let sticks = [];
+  function layMatches(n) {
+    matchesEl.textContent = "";
+    sticks = Array.from({ length: n }, () => {
+      const m = document.createElement("span");
+      m.className = "match";
+      matchesEl.appendChild(m);
+      return m;
+    });
+  }
+
+  let playing = false;
+  let score = 0;
+  let timeLeft = level.seconds;
+  let current = -1;     // 지금 올라와 있는 성냥갑
+  let last = -1;
+  let caught = false;   // 이번 두더지를 이미 잡았는지
+  let tickTimer = null, hideTimer = null, nextTimer = null;
+
+  // 황금두더지: 약 2초마다 나와서 1.5초 안에 못 잡으면 사라지고 콤보가 0이 된다
+  const GOLD_EVERY = [1800, 2200];
+  const GOLD_STAY = 1500;
+  const GOLD_POINTS = 5;
+  let goldIdx = -1;
+  let combo = 0;        // 황금두더지를 연속으로 잡은 수
+  let caughtCount = 0, goldCount = 0;
+  let goldHideTimer = null, goldSpawnTimer = null;
+
+  function readLevel() {
+    level = LEVELS[document.querySelector('input[name="level"]:checked').value];
+  }
+
+  function resetBoard() {
+    score = 0;
+    timeLeft = level.seconds;
+    scoreEl.textContent = score;
+    timeEl.textContent = timeLeft;
+    layMatches(level.seconds);
+    books.forEach(closeBook);
+    current = -1;
+    last = -1;
+    goldIdx = -1;
+    caughtCount = 0;
+    goldCount = 0;
+    setCombo(0);
+  }
+
+  function setCombo(n) {
+    combo = n;
+    comboEl.textContent = combo;
+    comboBox.classList.toggle("on", combo >= 2);
+  }
+
+  function bump(el) {
+    el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump");
+  }
+
+  function startGame() {
+    clearTimers();
+    readLevel();
+    resetBoard();
+    veil.classList.remove("show");
+    if (document.activeElement) document.activeElement.blur();
+    playing = true;
+    controls.classList.add("away");
+    startBtn.disabled = true;
+    lightMatch();
+    announce.textContent = `${level.name} 난이도로 게임 시작! 열린 성냥갑의 두더지를 잡으세요.`;
+    tickTimer = setInterval(tick, 1000);
+    nextTimer = setTimeout(popUp, 450);
+    goldSpawnTimer = setTimeout(spawnGold, randBetween(GOLD_EVERY));
+  }
+
+  function randBetween([min, max]) {
+    return min + Math.random() * (max - min);
+  }
+
+  function spawnGold() {
+    if (!playing) return;
+    let idx;
+    do { idx = Math.floor(Math.random() * books.length); } while (idx === current);
+    goldIdx = idx;
+    const b = books[idx];
+    b.classList.remove("bonk", "hit", "goldhit");
+    b.classList.add("up", "gold");
+    b.setAttribute("aria-label", `${idx + 1}번 성냥갑, 황금두더지가 나왔어요!`);
+    goldHideTimer = setTimeout(missGold, GOLD_STAY);
+    goldSpawnTimer = setTimeout(spawnGold, randBetween(GOLD_EVERY));
+  }
+
+  // 1.5초 안에 못 잡으면 사라지고 콤보가 끊긴다
+  function missGold() {
+    if (goldIdx < 0) return;
+    closeBook(books[goldIdx]);
+    goldIdx = -1;
+    if (combo > 0) setCombo(0);
+  }
+
+  // 황금두더지: 기본 5점 + 콤보 보너스(두 번째 연속부터 +2, +4, +6 …)
+  function catchGold(i) {
+    clearTimeout(goldHideTimer);
+    const b = books[i];
+    setCombo(combo + 1);
+    const bonus = combo >= 2 ? (combo - 1) * 2 : 0;
+    score += GOLD_POINTS + bonus;
+    caughtCount++;
+    goldCount++;
+    scoreEl.textContent = score;
+    bump(scoreEl.parentElement);
+    if (combo >= 2) bump(comboBox);
+    b.querySelector(".plus").innerHTML =
+      `+${GOLD_POINTS}` + (bonus ? `<small>콤보 +${bonus}</small>` : "");
+    b.classList.remove("hit"); void b.offsetWidth;
+    b.classList.add("hit", "goldhit", "bonk");
+    closeBook(b);
+    goldIdx = -1;
+    announce.textContent = bonus
+      ? `황금두더지! ${GOLD_POINTS}점에 콤보 보너스 ${bonus}점, ${combo}연속!`
+      : `황금두더지! ${GOLD_POINTS}점!`;
+  }
+
+  // 성냥은 맨 오른쪽부터 타 들어간다
+  function lightMatch() {
+    const idx = timeLeft - 1;
+    if (sticks[idx]) sticks[idx].classList.add("lit");
+  }
+
+  function tick() {
+    const burning = sticks[timeLeft - 1];
+    if (burning) { burning.classList.remove("lit"); burning.classList.add("burnt"); }
+    timeLeft--;
+    timeEl.textContent = timeLeft;
+    if (timeLeft <= 0) { endGame(); return; }
+    lightMatch();
+  }
+
+  function popUp() {
+    if (!playing) return;
+    let idx;
+    do { idx = Math.floor(Math.random() * books.length); } while (idx === last || idx === goldIdx);
+    current = idx;
+    last = idx;
+    caught = false;
+    const b = books[idx];
+    b.classList.remove("bonk", "hit");
+    b.classList.add("up");
+    b.setAttribute("aria-label", `${idx + 1}번 성냥갑, 두더지가 나왔어요!`);
+    hideTimer = setTimeout(() => {
+      closeBook(b);
+      current = -1;
+      scheduleNext();
+    }, level.show);
+  }
+
+  function scheduleNext(extra = 0) {
+    if (!playing) return;
+    const [min, max] = level.gap;
+    const gap = min + Math.random() * (max - min) + extra;
+    nextTimer = setTimeout(popUp, gap);
+  }
+
+  function closeBook(b) {
+    b.classList.remove("up", "gold");
+    b.setAttribute("aria-label", `${books.indexOf(b) + 1}번 성냥갑, 닫혀 있음`);
+  }
+
+  // 빈(닫힌) 성냥갑은 아무 반응이 없다
+  function whack(i) {
+    if (!playing) return;
+    if (i === goldIdx) { catchGold(i); return; }
+    if (i !== current || caught) return;
+    caught = true;
+    clearTimeout(hideTimer);
+    const b = books[i];
+    score++;
+    caughtCount++;
+    scoreEl.textContent = score;
+    bump(scoreEl.parentElement);
+    b.querySelector(".plus").textContent = "+1";
+    b.classList.remove("hit", "goldhit"); void b.offsetWidth;
+    b.classList.add("hit", "bonk");
+    closeBook(b);
+    current = -1;
+    scheduleNext(120);
+  }
+
+  function endGame() {
+    playing = false;
+    clearTimers();
+    books.forEach(closeBook);
+    current = -1;
+    goldIdx = -1;
+    finalScoreEl.textContent = score;
+    resultLevelEl.textContent = level.name;
+    tallyEl.textContent = `두더지 ${caughtCount}마리 · 그중 황금두더지 ${goldCount}마리`;
+    // 약 올리는 기준은 점수가 아니라 잡은 마릿수
+    cheerEl.textContent = cheerFor(caughtCount, level.target);
+    setTimeout(() => {
+      veil.classList.add("show");
+      announce.textContent = `게임 오버! 최종 점수 ${score}점, 두더지 ${caughtCount}마리.`;
+      // 키보드로 하는 사람에게만 포커스를 옮긴다 (터치 화면엔 테두리를 그리지 않게)
+      if (usingKeyboard) againBtn.focus({ preventScroll: true });
+    }, 450);
+  }
+
+  function cheerFor(n, target) {
+    // 난이도 기준(target) 이하면 두더지들이 약을 올린다. 기준의 1/3, 2/3 지점에서 문구가 바뀐다
+    if (n === 0) return "한 마리도 못 잡았네? 두더지들이 배꼽 잡고 웃는 중 🤣";
+    if (n < target / 3) return "겨우 이거야? 두더지가 하품하고 갔어요 🥱";
+    if (n < target * 2 / 3) return "에이~ 두더지들이 “그게 다야?” 래요 😜";
+    if (n < target) return "아깝다~ 조금만 더 빨랐으면! 두더지가 메롱 👅";
+    if (n === target) return `딱 ${target}마리! 근데 두더지들은 아직 안 졌대요 😏`;
+    return "두더지들이 백기 들었어요! 진짜 고수 인정 🏆";
+  }
+
+  function clearTimers() {
+    clearInterval(tickTimer);
+    clearTimeout(hideTimer);
+    clearTimeout(nextTimer);
+    clearTimeout(goldHideTimer);
+    clearTimeout(goldSpawnTimer);
+  }
+
+  startBtn.addEventListener("click", () => { if (!playing) startGame(); });
+  againBtn.addEventListener("click", startGame);
+
+  // 난이도를 고르면 시간과 성냥 줄이 바로 그 난이도에 맞춰진다
+  document.querySelectorAll('input[name="level"]').forEach((r) =>
+    r.addEventListener("change", () => { if (!playing) { readLevel(); resetBoard(); } }));
+  readLevel();
+  resetBoard();
+
+  // 결과 화면에서 처음 화면으로 돌아가 난이도를 다시 고른다
+  changeBtn.addEventListener("click", () => {
+    veil.classList.remove("show");
+    resetBoard();
+    controls.classList.remove("away");
+    startBtn.disabled = false;
+    document.querySelector('input[name="level"]:checked').focus({ preventScroll: true });
+  });
+</script>
+</body>
+</html>

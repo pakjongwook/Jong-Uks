@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>벽돌 깨기</title>
+<style>
+  /* 도트 글꼴은 프로젝트 안 fonts 폴더에서 불러와요.
+     Galmuri11은 11·22·33px, Galmuri14는 14px에서 가장 또렷해요 */
+  @font-face {
+    font-family: "Galmuri11";
+    src: url("fonts/Galmuri11-Bold.woff2") format("woff2");
+    font-weight: 700;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: "Galmuri14";
+    src: url("fonts/Galmuri14.woff2") format("woff2");
+    font-weight: 400;
+    font-display: swap;
+  }
+
+  :root {
+    --cabinet: #c8372d;      /* 오락기 몸통 페인트 */
+    --cabinet-deep: #8e2119;
+    --stripe-1: #ec6a2c;
+    --stripe-2: #f7a531;
+    --stripe-3: #ffd23f;
+    --bezel: #17131b;        /* 화면 둘레 검은 테두리 */
+    --bezel-edge: #2c2532;
+    --crt: #07090b;          /* 꺼진 브라운관 색 */
+    --marquee: #ffd23f;      /* 불 켜진 간판 */
+    --marquee-ink: #6e1510;
+    --ink: #f4f1e8;
+    --gold: #ffd23f;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  ::selection { background: var(--gold); color: var(--bezel); }
+
+  html { background: var(--cabinet); }
+
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    color: var(--ink);
+    font-family: "Galmuri14", "Malgun Gothic", sans-serif;
+    /* 80년대 오락기 옆면 같은 굵은 사선 띠 */
+    background:
+      linear-gradient(118deg,
+        transparent 0 58%,
+        var(--stripe-1) 58% 64%,
+        transparent 64% 66%,
+        var(--stripe-2) 66% 70%,
+        transparent 70% 72%,
+        var(--stripe-3) 72% 74.5%,
+        transparent 74.5%) fixed,
+      var(--cabinet);
+  }
+
+  .cabinet {
+    width: min(100%, 520px);
+    margin: 0 auto;
+    padding: 16px 16px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  /* 대결 모드에서는 화면 두 개가 나란히 들어가게 오락기를 넓혀요 */
+  .cabinet.vs { width: min(100%, 1000px); }
+  .cabinet.vs .topbar,
+  .cabinet.vs .mode,
+  .cabinet.vs .legend { width: min(100%, 488px); align-self: center; }
+
+  /* 모드 고르기: 오락기 버튼 두 개 */
+  .mode {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .mode button {
+    padding: 10px 8px;
+    font-family: "Galmuri11", "Malgun Gothic", sans-serif;
+    font-size: 11px;
+    line-height: 14px;
+    font-weight: 700;
+    color: var(--ink);
+    background: var(--bezel);
+    border: 2px solid var(--bezel-edge);
+    border-radius: 6px;
+    cursor: pointer;
+    box-shadow: 0 3px 0 var(--cabinet-deep);
+    transition: transform 0.08s ease-out, box-shadow 0.08s ease-out, background 0.15s ease-out;
+  }
+  .mode button[aria-pressed="true"] {
+    color: var(--marquee-ink);
+    background: var(--gold);
+    border-color: #c98a14;
+  }
+  .mode button:focus-visible { outline: 2px dashed var(--ink); outline-offset: 3px; }
+  .mode button:active { transform: translateY(3px); box-shadow: 0 0 0 var(--cabinet-deep); }
+  @media (hover: hover) {
+    .mode button[aria-pressed="false"]:hover { color: var(--gold); }
+  }
+
+  /* 처음으로 (자기소개 페이지) */
+  .home {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px 8px 10px;
+    font-family: "Galmuri14", "Malgun Gothic", sans-serif;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--gold);
+    text-decoration: none;
+    background: var(--bezel);
+    border: 2px solid var(--bezel-edge);
+    border-radius: 6px;
+    box-shadow: 0 3px 0 var(--cabinet-deep), 0 6px 10px rgba(60, 8, 4, 0.35);
+    transition: transform 0.12s ease-out, box-shadow 0.12s ease-out;
+  }
+  .home svg { width: 20px; height: 20px; shape-rendering: crispEdges; }
+  .home:focus-visible { outline: 2px dashed var(--ink); outline-offset: 4px; }
+  .home:active { transform: translateY(3px); box-shadow: 0 0 0 var(--cabinet-deep), 0 2px 4px rgba(60, 8, 4, 0.35); }
+  @media (hover: hover) {
+    .home:hover { color: var(--ink); }
+  }
+
+  /* 오락기 맨 위, 뒤에서 불이 들어오는 간판 */
+  .marquee {
+    position: relative;
+    padding: 14px 16px 12px;
+    text-align: center;
+    background: radial-gradient(ellipse at 50% 40%, #fff1b0 0%, var(--marquee) 62%, #f0b52a 100%);
+    border: 4px solid var(--bezel);
+    border-radius: 10px 10px 4px 4px;
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.45), 0 6px 14px rgba(60, 8, 4, 0.35);
+  }
+  .marquee h1 {
+    font-family: "Galmuri11", "Malgun Gothic", sans-serif;
+    font-size: 33px;
+    line-height: 40px;
+    font-weight: 700;
+    color: var(--marquee-ink);
+    text-shadow: 2px 2px 0 #ffeaa0;
+  }
+  /* 간판 아래쪽 작은 도트 벽돌 장식 (벽돌 색 4가지) */
+  .marquee .row {
+    display: flex;
+    justify-content: center;
+    gap: 3px;
+    margin-top: 8px;
+  }
+  .marquee .row i {
+    width: 18px;
+    height: 7px;
+    box-shadow: inset 2px 2px 0 rgba(255, 255, 255, 0.35), inset -2px -2px 0 rgba(0, 0, 0, 0.25);
+  }
+  .marquee .row i:nth-child(4n+1) { background: #e8443a; }
+  .marquee .row i:nth-child(4n+2) { background: #f39237; }
+  .marquee .row i:nth-child(4n+3) { background: #3fbf5f; }
+  .marquee .row i:nth-child(4n+4) { background: #4a9bf0; }
+
+  /* 화면 둘레 */
+  .bezel {
+    position: relative;
+    padding: 14px;
+    background: var(--bezel);
+    border-radius: 14px;
+    box-shadow:
+      inset 0 2px 0 var(--bezel-edge),
+      0 10px 24px rgba(60, 8, 4, 0.45);
+  }
+
+  /* 브라운관 화면: 점수판 + 게임 판 */
+  .screen {
+    position: relative;
+    overflow: hidden;
+    background: var(--crt);
+    border-radius: 18px / 14px;
+    /* 화면 높이가 너무 크면 데스크톱에서 아래가 잘리니 높이에 맞춰 폭을 줄여요 */
+    width: min(100%, calc((100dvh - 380px) * 0.75));
+    min-width: 240px;
+    margin: 0 auto;
+  }
+  .screen[hidden] { display: none; }
+
+  /* 대결 모드: 위에 남은 시간, 아래에 화면 두 개 */
+  .vsbar {
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-size: 14px;
+    line-height: 20px;
+    color: #c9c4b6;
+  }
+  .vsbar[hidden] { display: none; }
+  .vsbar b {
+    font-family: "Galmuri11", "Malgun Gothic", sans-serif;
+    font-size: 22px;
+    line-height: 26px;
+    color: var(--gold);
+    font-variant-numeric: tabular-nums;
+  }
+  .vsbar b.hurry { color: #ff7a5c; }
+  .screens { display: flex; justify-content: center; gap: 12px; }
+  /* 대결 모드: 둘레는 화면 두 개 크기에 딱 맞추고, 화면은 높이에 맞춰 폭을 정해요 */
+  .cabinet.vs .bezel { align-self: center; max-width: 100%; }
+  .vs .screen {
+    flex: 0 1 calc((100dvh - 420px) * 0.75);
+    width: auto;
+    min-width: 0;
+    margin: 0;
+  }
+  /* 좁은 화면 둘이면 점수와 하트를 두 줄로 */
+  .vs .hud { flex-wrap: wrap; row-gap: 4px; padding: 10px 10px 6px; }
+  .vs .lives svg { width: 21px; height: 18px; }
+  .vs .effects { order: 3; flex-basis: 100%; height: 24px; padding-bottom: 0; justify-content: flex-start; } /* 두 화면 높이가 같게 늘 같은 자리를 잡아 둬요 */
+  .screen.cpu .score .label { color: #9fd0ff; }
+  /* 주사선과 가장자리 어둠 (브라운관 느낌) */
+  .screen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0) 0 2px, rgba(0, 0, 0, 0.22) 2px 3px);
+    box-shadow: inset 0 0 40px 6px rgba(0, 0, 0, 0.75);
+    border-radius: inherit;
+  }
+
+  /* 맨 위 점수와 목숨 */
+  .hud {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px 8px;
+  }
+  .score .label {
+    display: block;
+    font-family: "Galmuri11", "Malgun Gothic", sans-serif;
+    font-size: 11px;
+    line-height: 14px;
+    letter-spacing: 0.1em;
+    color: #ff7a5c;
+  }
+  .score .value {
+    display: block;
+    font-family: "Galmuri11", "Malgun Gothic", sans-serif;
+    font-size: 22px;
+    line-height: 26px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .lives {
+    display: flex;
+    gap: 6px;
+    padding-bottom: 2px;
+  }
+  .lives svg {
+    width: 28px;
+    height: 24px;
+    shape-rendering: crispEdges;
+  }
+  .lives svg.lost { filter: grayscale(1) brightness(0.55); opacity: 0.6; } /* 잃은 목숨은 회색 빈 하트 */
+
+  /* 게임 판: 작은 해상도로 그리고 크게 키워서 도트가 또렷하게 보여요 */
+  .screen canvas {
+    display: block;
+    width: 100%;
+    aspect-ratio: 288 / 384;
+    image-rendering: pixelated;
+  }
+
+  /* ===== 끝 화면: 게임 오버·클리어·대결 결과 (화면 둘레 전체에 겹쳐요) ===== */
+  .endscreen {
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 16px;
+    text-align: center;
+    background: rgba(7, 9, 11, 0.9);
+    animation: gameover-in 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .endscreen[hidden] { display: none; }
+  .endscreen h2 {
+    font-family: "Galmuri11", "Malgun Gothic", sans-serif;
+    font-size: 33px;
+    line-height: 40px;
+    font-weight: 700;
+    color: #ff7a5c;
+    text-shadow: 3px 3px 0 #6e1510;
+  }
+  .endscreen .final-label {
+    margin-top: 12px;
+    font-size: 14px;
+    line-height: 20px;
+    color: #c9c4b6;
+  }
+  .endscreen .final-score {
+    font-family: "Galmuri11", "Malgun Gothic", sans-serif;
+    font-size: 22px;
+    line-height: 26px;
+    color: var(--gold);
+    font-variant-numeric: tabular-nums;
+  }
+  .endscreen button {
+    margin-top: 24px;
+    padding: 10px 20px 12px;
+    font-family: "Galmuri11", "Malgun Gothic", sans-serif;
+    font-size: 22px;
+    line-height: 26px;
+    font-weight: 700;
+    color: var(--marquee-ink);
+    background: var(--gold);
+    border: 0;
+    border-radius: 2px;
+    cursor: pointer;
+    /* 벽돌처럼 위·왼쪽은 밝게, 아래·오른쪽은 어둡게 */
+    box-shadow:
+      inset 3px 3px 0 #fff1b0,
+      inset -3px -3px 0 #c98a14,
+      0 4px 0 #6e1510;
+    transition: transform 0.08s ease-out, box-shadow 0.08s ease-out;
+  }
+  .endscreen button:focus-visible { outline: 2px dashed var(--ink); outline-offset: 5px; }
+  .endscreen button:active {
+    transform: translateY(4px);
+    box-shadow: inset 3px 3px 0 #fff1b0, inset -3px -3px 0 #c98a14, 0 0 0 #6e1510;
+  }
+  @media (hover: hover) {
+    .endscreen button:hover { background: #ffe066; }
+  }
+  @keyframes gameover-in {
+    from { opacity: 0; transform: scale(1.04); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  /* 점수판 가운데: 지금 켜진 아이템과 남은 시간 */
+  .effects {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    padding-bottom: 4px;
+  }
+  .effects span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: "Galmuri11", "Malgun Gothic", sans-serif;
+    font-size: 11px;
+    line-height: 14px;
+    color: var(--gold);
+    font-variant-numeric: tabular-nums;
+  }
+  .effects img { width: 20px; height: 20px; image-rendering: pixelated; }
+
+  /* 아이템 설명판 */
+  .legend {
+    padding: 14px 16px 16px;
+    background: var(--bezel);
+    border-radius: 10px;
+    box-shadow: inset 0 2px 0 var(--bezel-edge), 0 6px 14px rgba(60, 8, 4, 0.35);
+  }
+  .legend h2 {
+    font-family: "Galmuri11", "Malgun Gothic", sans-serif;
+    font-size: 11px;
+    line-height: 14px;
+    letter-spacing: 0.1em;
+    color: #ff7a5c;
+    margin-bottom: 10px;
+  }
+  .legend ul {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px 16px;
+  }
+  .legend li { display: flex; align-items: center; gap: 10px; }
+  .legend img {
+    flex: none;
+    width: 30px;
+    height: 30px;
+    padding: 3px;
+    image-rendering: pixelated;
+    background: #3a3340;
+    border-radius: 4px;
+    box-sizing: content-box;
+  }
+  .legend p { font-size: 14px; line-height: 20px; color: #c9c4b6; word-break: keep-all; }
+  .legend b {
+    display: block;
+    font-family: "Galmuri11", "Malgun Gothic", sans-serif;
+    font-size: 11px;
+    line-height: 14px;
+    color: var(--gold);
+  }
+
+  /* 클리어 화면: 도트 트로피와 반짝이 */
+  .endscreen.win h2 { color: var(--gold); text-shadow: 3px 3px 0 #8e2119; }
+  .trophy {
+    width: 120px;
+    height: 100px;
+    margin-bottom: 4px;
+    shape-rendering: crispEdges;
+    animation: trophy-pop 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .trophy .spark { animation: twinkle 1.2s steps(2, jump-none) infinite; }
+  .trophy .spark:nth-of-type(2) { animation-delay: 0.3s; }
+  .trophy .spark:nth-of-type(3) { animation-delay: 0.6s; }
+  .trophy .spark:nth-of-type(4) { animation-delay: 0.9s; }
+  @keyframes trophy-pop {
+    from { transform: translateY(12px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes twinkle {
+    from { opacity: 1; }
+    to { opacity: 0.15; }
+  }
+
+  /* 처음으로 + 간판 묶음 (데스크톱은 위아래로, 휴대폰은 한 줄로) */
+  .topbar { display: flex; flex-direction: column; gap: 16px; }
+
+  /* 손가락으로 게임 판을 끌 때 페이지가 스크롤되거나 글자가 선택되지 않게 */
+  .screen canvas { touch-action: none; }
+  .bezel {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ===== 휴대폰: 위쪽을 한 줄로 줄이고 게임 화면을 최대한 크게 ===== */
+  @media (max-width: 600px) {
+    .cabinet { padding: 8px 8px 24px; gap: 8px; }
+    .topbar { flex-direction: row; align-items: stretch; gap: 8px; }
+    .home { align-self: stretch; padding: 6px 10px 6px 8px; gap: 6px; }
+    .marquee { flex: 1; padding: 6px 10px; border-width: 3px; border-radius: 8px 8px 4px 4px; }
+    .marquee h1 { font-size: 22px; line-height: 28px; text-shadow: 1px 1px 0 #ffeaa0; }
+    .marquee .row { display: none; }
+    .mode button { padding: 8px; }
+
+    .bezel { padding: 6px; border-radius: 10px; }
+    .endscreen { border-radius: 10px; }
+    /* 위쪽 묶음 높이만 빼고 남은 세로 공간을 화면이 다 써요 */
+    .screen { width: min(100%, calc((100dvh - 190px) * 0.75)); min-width: 0; border-radius: 12px / 10px; }
+    .hud { padding: 10px 12px 6px; }
+
+    /* 대결: 내 화면은 크게, 컴퓨터 화면은 옆에 작게 (7 : 3) */
+    .cabinet.vs .bezel { align-self: stretch; }
+    .vsbar { margin-bottom: 6px; }
+    .screens { gap: 6px; align-items: flex-start; }
+    .vs .screen { flex: 7 1 0; max-width: none; }
+    .vs .screen.cpu { flex-grow: 3; }
+    .vs .screen.cpu .hud { padding: 8px 6px 4px; row-gap: 2px; }
+    .vs .screen.cpu .score .value { font-size: 11px; line-height: 14px; }
+    .vs .screen.cpu .lives { gap: 2px; }
+    .vs .screen.cpu .lives svg { width: 14px; height: 12px; }
+    .vs .screen.cpu .effects { height: 20px; }
+    .vs .screen.cpu .effects img { width: 14px; height: 14px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .endscreen, .trophy, .trophy .spark { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 하트 모양 (7×6 도트) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="heart" viewBox="0 0 7 6">
+    <path d="M1 0h2v1h1V0h2v1h1v2h-1v1h-1v1h-1v1h-1v-1h-1v-1h-1v-1h-1v-1H0V1h1z" fill="#e8443a"/>
+    <rect x="1" y="1" width="1" height="1" fill="#ffb3a8"/>
+    <rect x="5" y="3" width="1" height="1" fill="#a3221b"/>
+  </symbol>
+</svg>
+
+<main class="cabinet">
+
+  <div class="topbar">
+    <a class="home" href="index.html">
+      <!-- 도트 집 -->
+      <svg viewBox="0 0 10 10" aria-hidden="true">
+        <path d="M4 1h2v1h1v1h1v1h1v1H8v4H2V5H1V4h1V3h1V2h1z" fill="#ffd23f"/>
+        <rect x="4" y="6" width="2" height="3" fill="#e8443a"/>
+      </svg>
+      처음으로
+    </a>
+
+    <header class="marquee">
+      <h1>벽돌 깨기</h1>
+      <div class="row" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    </header>
+  </div>
+
+  <div class="mode" role="group" aria-label="게임 모드">
+    <button type="button" data-mode="solo" aria-pressed="true">혼자 하기</button>
+    <button type="button" data-mode="vs" aria-pressed="false">컴퓨터와 대결</button>
+  </div>
+
+  <div class="bezel">
+    <p class="vsbar" id="vsbar" hidden>남은 시간 <b id="vs-time">2:00</b></p>
+    <div class="screens">
+      <div class="screen" id="screen-player">
+        <div class="hud">
+          <p class="score">
+            <span class="label">SCORE</span>
+            <span class="value">000000</span>
+          </p>
+          <div class="effects"></div>
+          <div class="lives" role="img" aria-label="목숨 3개"></div>
+        </div>
+        <canvas aria-label="내 게임 판: 벽돌 4줄, 패들, 공"></canvas>
+      </div>
+      <div class="screen cpu" id="screen-cpu" hidden>
+        <div class="hud">
+          <p class="score">
+            <span class="label">CPU</span>
+            <span class="value">000000</span>
+          </p>
+          <div class="effects"></div>
+          <div class="lives" role="img" aria-label="컴퓨터 목숨 3개"></div>
+        </div>
+        <canvas aria-label="컴퓨터 게임 판"></canvas>
+      </div>
+    </div>
+
+    <section class="endscreen" id="endscreen" role="dialog" aria-labelledby="end-title" hidden>
+    <!-- 도트 트로피 (16×16) + 벽돌 색 반짝이 4개. 이기거나 클리어했을 때만 보여요 -->
+    <svg class="trophy" id="end-trophy" viewBox="0 0 24 20" aria-hidden="true">
+      <g transform="translate(4 2)">
+        <rect x="3" y="0" width="10" height="1" fill="#fff1b0"/>
+        <rect x="4" y="1" width="8" height="7" fill="#ffd23f"/>
+        <rect x="5" y="8" width="6" height="1" fill="#ffd23f"/>
+        <rect x="6" y="9" width="4" height="1" fill="#f0b52a"/>
+        <rect x="10" y="1" width="2" height="7" fill="#f0b52a"/>
+        <rect x="5" y="1" width="1" height="5" fill="#fff1b0"/>
+        <rect x="7" y="3" width="2" height="2" fill="#e8443a"/>
+        <!-- 손잡이 -->
+        <rect x="1" y="1" width="3" height="1" fill="#c98a14"/>
+        <rect x="1" y="2" width="1" height="3" fill="#c98a14"/>
+        <rect x="1" y="5" width="3" height="1" fill="#c98a14"/>
+        <rect x="12" y="1" width="3" height="1" fill="#c98a14"/>
+        <rect x="14" y="2" width="1" height="3" fill="#c98a14"/>
+        <rect x="12" y="5" width="3" height="1" fill="#c98a14"/>
+        <!-- 기둥과 받침 -->
+        <rect x="7" y="10" width="2" height="2" fill="#c98a14"/>
+        <rect x="5" y="12" width="6" height="1" fill="#ffd23f"/>
+        <rect x="4" y="13" width="8" height="3" fill="#8e2119"/>
+        <rect x="6" y="14" width="4" height="1" fill="#ffd23f"/>
+      </g>
+      <path class="spark" d="M1 3h3v1H1zM2 2h1v3H2z" fill="#4a9bf0"/>
+      <path class="spark" d="M20 1h3v1h-3zM21 0h1v3h-1z" fill="#3fbf5f"/>
+      <path class="spark" d="M0 13h3v1H0zM1 12h1v3H1z" fill="#f39237"/>
+      <path class="spark" d="M21 12h3v1h-3zM22 11h1v3h-1z" fill="#e8443a"/>
+    </svg>
+    <h2 id="end-title">게임 오버</h2>
+    <p class="final-label" id="end-label">최종 점수</p>
+    <p class="final-score" id="end-value">000000</p>
+    <button type="button" id="restart">다시 하기</button>
+    </section>
+  </div>
+
+  <!-- 아이템 설명판: 게임 판에 그리는 것과 같은 brick-items/*.svg 그림 -->
+  <section class="legend" aria-labelledby="legend-title">
+    <h2 id="legend-title">벽돌 속 아이템</h2>
+    <ul>
+      <li><img src="brick-items/bomb.svg" alt=""><p><b>폭탄</b>깨지면 펑! 둘레 벽돌까지 부서져요</p></li>
+      <li><img src="brick-items/long.svg" alt=""><p><b>긴 패들</b>받으면 10초 동안 패들이 길어져요</p></li>
+      <li><img src="brick-items/fire.svg" alt=""><p><b>불꽃 공</b>받으면 6초 동안 벽돌을 뚫고 지나가요</p></li>
+      <li><img src="brick-items/slow.svg" alt=""><p><b>달팽이</b>받으면 8초 동안 공이 느려져요</p></li>
+    </ul>
+  </section>
+
+</main>
+
+<script>
+  // ===== 게임 판 크기 (도트 단위) =====
+  const W = 288;
+  const H = 384;
+  const WALL = 6; // 왼쪽·오른쪽·위쪽 회색 벽 두께
+
+  const MAX_LIVES = 3;
+
+  // 패들
+  const PADDLE_W = 48;
+  const PADDLE_LONG_W = 72;
+  const PADDLE_Y = 352;
+  const PADDLE_SPEED = 240; // 내 패들이 1초에 움직이는 도트 수
+
+  // 공 (speed: 1초에 움직이는 도트 수)
+  const BALL_SIZE = 6;
+  const BALL_START_SPEED = 105; // 발사 순간 속도
+  const BALL_ACCEL = 21;        // 1초마다 이만큼씩 빨라져요
+  const BALL_MAX_SPEED = 294;   // 너무 빨라지지 않게 최고 속도
+
+  // 벽돌: 4줄 × 8개, 줄마다 다른 색 (밝은 테두리, 기본, 어두운 테두리)
+  const ROWS = 4;
+  const COLS = 8;
+  const BRICK_W = 32;
+  const BRICK_H = 12;
+  const GAP = 2;
+  const BRICK_LEFT = WALL + 3;
+  const BRICK_TOP = 44;
+  const BRICK_POINTS = 10;
+  const ROW_COLORS = [
+    { light: "#ff8a7a", base: "#e8443a", dark: "#9c2119" }, // 빨강
+    { light: "#ffc27a", base: "#f39237", dark: "#a8551a" }, // 주황
+    { light: "#8ef0a2", base: "#3fbf5f", dark: "#1f7a3a" }, // 초록
+    { light: "#9fd0ff", base: "#4a9bf0", dark: "#22589e" }, // 파랑
+  ];
+
+  // ===== 아이템 =====
+  // bomb: 깨지는 순간 그 자리에서 터져 둘레 8칸 벽돌을 부숴요 (다른 폭탄이 있으면 연쇄 폭발)
+  // long·fire·slow: 깨지면 아래로 떨어지고, 패들로 받으면 정해진 시간 동안 효과가 켜져요
+  const ITEMS = {
+    bomb: { count: 2 },
+    long: { count: 2, duration: 10 }, // 패들이 48 → 72도트로 길어져요
+    fire: { count: 2, duration: 6 },  // 공이 벽돌에서 튕기지 않고 뚫고 지나가요
+    slow: { count: 2, duration: 8 },  // 공 속도가 60%로 느려지고 더 빨라지지도 않아요
+  };
+  const SLOW_FACTOR = 0.6;
+  const DROP_SPEED = 70; // 아이템이 1초에 떨어지는 도트 수
+  const EFFECT_NAMES = { long: "긴 패들", fire: "불꽃 공", slow: "달팽이" };
+
+  // 아이템 그림 (brick-items 폴더의 SVG 파일을 캔버스에 그려요)
+  const itemImages = {};
+  for (const type in ITEMS) {
+    itemImages[type] = new Image();
+    itemImages[type].src = `brick-items/${type}.svg`;
+  }
+
+  // ===== 컴퓨터 실력 ("보통") =====
+  const CPU_SPEED = 180;       // 컴퓨터 패들 속도 (나보다 조금 느려요)
+  const CPU_AIM_ERROR = 36;    // 공이 내려올 때마다 떨어질 자리를 이만큼까지 잘못 짐작해요 (패들 반 길이보다 크면 놓쳐요)
+  const CPU_LAUNCH_DELAY = 0.8; // 공을 놓친 뒤 다시 쏘기까지 기다리는 시간(초)
+
+  // ===== 대결 규칙 =====
+  const VS_TIME = 120; // 2분 안에 먼저 다 깨면 승리, 시간이 끝나면 점수가 높은 쪽 승리
+
+  // ===== 판 하나 만들기 =====
+  // 내 판과 컴퓨터 판이 똑같은 모양의 상태를 하나씩 가져요
+  function createBoard(screenEl, isCpu) {
+    const canvas = screenEl.querySelector("canvas");
+    const bricks = [];
+    for (let row = 0; row < ROWS; row++) {
+      for (let col = 0; col < COLS; col++) {
+        bricks.push({
+          x: BRICK_LEFT + col * (BRICK_W + GAP),
+          y: BRICK_TOP + row * (BRICK_H + GAP),
+          w: BRICK_W,
+          h: BRICK_H,
+          row,
+          col,
+          color: ROW_COLORS[row],
+          alive: true,
+          item: null, // 이 벽돌 속 아이템 (없으면 null)
+        });
+      }
+    }
+    return {
+      isCpu,
+      screenEl,
+      canvas,
+      ctx: canvas.getContext("2d"),
+      scoreEl: screenEl.querySelector(".score .value"),
+      livesEl: screenEl.querySelector(".lives"),
+      effectsEl: screenEl.querySelector(".effects"),
+      score: 0,
+      lives: MAX_LIVES,
+      out: false, // 대결 중 목숨을 다 잃으면 true (그 판은 멈춰요)
+      paddle: { w: PADDLE_W, h: 8, x: (W - PADDLE_W) / 2, y: PADDLE_Y },
+      // launched: 발사됐는지, dx·dy: 날아가는 방향
+      ball: { size: BALL_SIZE, x: 0, y: 0, launched: false, dx: 0, dy: 0, speed: 0 },
+      bricks,
+      effects: { long: 0, fire: 0, slow: 0 }, // 켜져 있는 효과의 남은 시간(초)
+      drops: [],  // 떨어지는 아이템
+      blasts: [], // 폭발 불꽃
+      pieces: [], // 깨진 벽돌 조각
+      effectsHudKey: "",
+      cpu: { aim: 0, falling: false, wait: 0 }, // 컴퓨터용: 짐작 오차, 공이 내려오는 중인지, 재발사까지 남은 시간
+    };
+  }
+
+  const player = createBoard(document.getElementById("screen-player"), false);
+  const cpu = createBoard(document.getElementById("screen-cpu"), true);
+
+  // ===== 게임 전체 상태 =====
+  let mode = "solo";       // "solo" 혼자 하기, "vs" 컴퓨터와 대결
+  let started = false;     // 처음 발사했는지 (대결은 이때 같이 시작해요)
+  let gameEnded = false;
+  let playTime = 0;        // 첫 발사부터 흐른 시간(초)
+
+  function activeBoards() {
+    return mode === "vs" ? [player, cpu] : [player];
+  }
+
+  // 판마다 아이템을 무작위 벽돌에 넣어요. 대결에서는 두 판이 똑같은 자리예요
+  function makeItemLayout() {
+    const layout = new Array(ROWS * COLS).fill(null);
+    const order = layout.map((_, i) => i).sort(() => Math.random() - 0.5);
+    let i = 0;
+    for (const type in ITEMS) {
+      for (let n = 0; n < ITEMS[type].count; n++) layout[order[i++]] = type;
+    }
+    return layout;
+  }
+
+  function resetBoard(g, layout) {
+    g.score = 0;
+    g.lives = MAX_LIVES;
+    g.out = false;
+    g.bricks.forEach((b, i) => {
+      b.alive = true;
+      b.item = layout[i];
+    });
+    for (const type in g.effects) g.effects[type] = 0;
+    g.drops.length = 0;
+    g.blasts.length = 0;
+    g.pieces.length = 0;
+    g.paddle.w = PADDLE_W;
+    g.paddle.x = (W - PADDLE_W) / 2;
+    g.cpu.wait = CPU_LAUNCH_DELAY;
+    resetBall(g);
+    updateHud(g);
+  }
+
+  function resetBall(g) {
+    g.ball.launched = false;
+    g.ball.speed = 0;
+    g.ball.x = g.paddle.x + g.paddle.w / 2 - g.ball.size / 2;
+    g.ball.y = g.paddle.y - g.ball.size;
+  }
+
+  // ===== 그리기 =====
+  function drawWalls(ctx) {
+    ctx.fillStyle = "#6b6f7a";
+    ctx.fillRect(0, 0, W, WALL);           // 위
+    ctx.fillRect(0, 0, WALL, H);           // 왼쪽
+    ctx.fillRect(W - WALL, 0, WALL, H);    // 오른쪽
+    ctx.fillStyle = "#9ea3ad";             // 벽 안쪽 밝은 선
+    ctx.fillRect(WALL - 2, WALL - 2, W - (WALL - 2) * 2, 2);
+    ctx.fillRect(WALL - 2, WALL - 2, 2, H);
+    ctx.fillRect(W - WALL, WALL - 2, 2, H);
+  }
+
+  function drawBrick(ctx, b) {
+    const c = b.color;
+    ctx.fillStyle = c.base;
+    ctx.fillRect(b.x, b.y, b.w, b.h);
+    ctx.fillStyle = c.light;                  // 위·왼쪽 빛
+    ctx.fillRect(b.x, b.y, b.w, 2);
+    ctx.fillRect(b.x, b.y, 2, b.h);
+    ctx.fillStyle = c.dark;                   // 아래·오른쪽 그림자
+    ctx.fillRect(b.x, b.y + b.h - 2, b.w, 2);
+    ctx.fillRect(b.x + b.w - 2, b.y, 2, b.h);
+    ctx.fillStyle = "rgba(255, 255, 255, 0.75)"; // 반짝이는 점
+    ctx.fillRect(b.x + 4, b.y + 4, 2, 2);
+
+    // 아이템이 든 벽돌은 가운데를 파고 아이템 그림을 보여 줘요 (검은 폭탄은 밝은 바탕에)
+    if (b.item) {
+      ctx.fillStyle = b.item === "bomb" ? "#fff1b0" : "rgba(23, 19, 27, 0.7)";
+      ctx.fillRect(b.x + 10, b.y + 1, 12, 10);
+      ctx.drawImage(itemImages[b.item], b.x + 11, b.y + 1, 10, 10);
+    }
+  }
+
+  // 떨어지는 아이템: 어두운 캡슐 안에 그림, 테두리는 금색
+  function drawDrops(ctx, g) {
+    for (const d of g.drops) {
+      const x = Math.round(d.x);
+      const y = Math.round(d.y);
+      ctx.fillStyle = "#ffd23f";
+      ctx.fillRect(x - 6, y - 7, 12, 14);
+      ctx.fillRect(x - 7, y - 6, 14, 12);
+      ctx.fillStyle = "#17131b";
+      ctx.fillRect(x - 6, y - 6, 12, 12);
+      ctx.drawImage(itemImages[d.type], x - 5, y - 5, 10, 10);
+    }
+  }
+
+  // 폭발: 노란 네모 테두리가 커지면서 사라져요
+  function drawBlasts(ctx, g) {
+    for (const bl of g.blasts) {
+      const t = bl.age / 0.3;             // 0 → 1
+      const r = Math.round(8 + t * 34);   // 반지름
+      const thick = 3;
+      ctx.globalAlpha = 1 - t;
+      ctx.fillStyle = t < 0.4 ? "#fff1b0" : "#f39237";
+      ctx.fillRect(bl.x - r, bl.y - r, r * 2, thick);
+      ctx.fillRect(bl.x - r, bl.y + r - thick, r * 2, thick);
+      ctx.fillRect(bl.x - r, bl.y - r, thick, r * 2);
+      ctx.fillRect(bl.x + r - thick, bl.y - r, thick, r * 2);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawPaddle(ctx, paddle) {
+    // 위치는 소수로 계산하지만 그릴 때는 정수 도트에 맞춰야 테두리가 또렷해요
+    const p = { ...paddle, x: Math.round(paddle.x), w: Math.round(paddle.w) };
+    // 가운데 은색 몸통
+    ctx.fillStyle = "#c9ced6";
+    ctx.fillRect(p.x + 8, p.y, p.w - 16, p.h);
+    ctx.fillStyle = "#f4f6fa";
+    ctx.fillRect(p.x + 8, p.y + 1, p.w - 16, 2);
+    ctx.fillStyle = "#7d838e";
+    ctx.fillRect(p.x + 8, p.y + p.h - 2, p.w - 16, 2);
+    // 양쪽 빨간 끝 (모서리는 한 칸씩 깎아서 둥글게)
+    for (const x of [p.x, p.x + p.w - 8]) {
+      ctx.fillStyle = "#e8443a";
+      ctx.fillRect(x, p.y + 1, 8, p.h - 2);
+      ctx.fillRect(x + 1, p.y, 6, p.h);
+      ctx.fillStyle = "#ff8a7a";
+      ctx.fillRect(x + 1, p.y + 1, 6, 2);
+      ctx.fillStyle = "#9c2119";
+      ctx.fillRect(x + 1, p.y + p.h - 2, 6, 1);
+    }
+  }
+
+  function drawBall(ctx, g) {
+    const ball = g.ball;
+    const b = { ...ball, x: Math.round(ball.x), y: Math.round(ball.y) };
+
+    // 불꽃 공: 주황·노랑 공 뒤로 꼬리가 따라와요
+    if (g.effects.fire > 0) {
+      for (let i = 2; i >= 1; i--) {
+        ctx.globalAlpha = 0.5 / i;
+        ctx.fillStyle = "#e8443a";
+        ctx.fillRect(Math.round(b.x - ball.dx * 5 * i), Math.round(b.y - ball.dy * 5 * i), b.size, b.size);
+      }
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#f39237";
+      ctx.fillRect(b.x + 1, b.y, b.size - 2, b.size);
+      ctx.fillRect(b.x, b.y + 1, b.size, b.size - 2);
+      ctx.fillStyle = "#ffd23f";
+      ctx.fillRect(b.x + 1, b.y + 1, 3, 3);
+      return;
+    }
+
+    ctx.fillStyle = "#f4f1e8";
+    ctx.fillRect(b.x + 1, b.y, b.size - 2, b.size);
+    ctx.fillRect(b.x, b.y + 1, b.size, b.size - 2);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(b.x + 1, b.y + 1, 2, 2);
+    ctx.fillStyle = "#b9b4a6";
+    ctx.fillRect(b.x + b.size - 2, b.y + b.size - 2, 1, 1);
+  }
+
+  function drawPieces(ctx, g) {
+    for (const p of g.pieces) {
+      ctx.globalAlpha = Math.min(1, p.life / 0.3);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(Math.round(p.x), Math.round(p.y), 4, 3);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // 판 가운데에 도트 글씨 한 줄
+  function drawCenterText(ctx, text, y, color) {
+    ctx.font = '700 11px "Galmuri11", "Malgun Gothic", sans-serif';
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#17131b";
+    ctx.fillText(text, W / 2 + 1, y + 1);
+    ctx.fillStyle = color;
+    ctx.fillText(text, W / 2, y);
+  }
+
+  function draw(g, time) {
+    const ctx = g.ctx;
+    ctx.clearRect(0, 0, W, H);
+    drawWalls(ctx);
+    for (const b of g.bricks) {
+      if (b.alive) drawBrick(ctx, b);
+    }
+    drawPieces(ctx, g);
+    drawBlasts(ctx, g);
+    drawDrops(ctx, g);
+    drawPaddle(ctx, g.paddle);
+    drawBall(ctx, g);
+
+    // 내 판: 쏘기 전에는 "스페이스바로 발사!"(터치 화면은 "톡 쳐서 발사!")가 깜빡여요
+    if (!g.isCpu && !g.ball.launched && !gameEnded && Math.floor(time / 500) % 2 === 0) {
+      drawCenterText(ctx, touchUI ? "톡 쳐서 발사! 끌어서 이동" : "스페이스바로 발사!", 300, "#ffd23f");
+    }
+    // 대결 중 목숨을 다 잃은 판은 어둡게
+    if (g.out && !gameEnded) {
+      ctx.fillStyle = "rgba(7, 9, 11, 0.6)";
+      ctx.fillRect(0, 0, W, H);
+      drawCenterText(ctx, "목숨 끝! 기다리는 중…", H / 2, "#ff7a5c");
+    }
+  }
+
+  // 화면 크기에 맞춰 캔버스를 정수 배율로 키워서 도트가 뭉개지지 않게 해요
+  function resize(g) {
+    if (!g.canvas.clientWidth) return; // 숨겨진 화면은 건너뛰어요
+    const dpr = window.devicePixelRatio || 1;
+    const scale = Math.max(1, Math.ceil((g.canvas.clientWidth * dpr) / W));
+    g.canvas.width = W * scale;
+    g.canvas.height = H * scale;
+    g.ctx.setTransform(scale, 0, 0, scale, 0, 0);
+    g.ctx.imageSmoothingEnabled = false;
+    draw(g, performance.now()); // 크기를 바꾸면 캔버스가 지워지니 바로 다시 그려요
+  }
+
+  // ===== 벽돌 조각 (깨질 때 흩어지며 떨어져요) =====
+  function spawnPieces(g, b) {
+    for (let i = 0; i < 8; i++) {
+      g.pieces.push({
+        x: b.x + (i % 4) * 8 + 2,
+        y: b.y + Math.floor(i / 4) * 6 + 1,
+        vx: (Math.random() - 0.5) * 120,
+        vy: -40 - Math.random() * 80,
+        life: 0.6,
+        color: i % 3 === 0 ? b.color.light : b.color.base,
+      });
+    }
+  }
+
+  function updatePieces(g, dt) {
+    for (const p of g.pieces) {
+      p.vy += 500 * dt; // 중력
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.life -= dt;
+    }
+    // 수명이 다한 조각은 지워요
+    for (let i = g.pieces.length - 1; i >= 0; i--) {
+      if (g.pieces[i].life <= 0) g.pieces.splice(i, 1);
+    }
+  }
+
+  // ===== 점수와 목숨 표시 =====
+  function updateHud(g) {
+    g.scoreEl.textContent = String(g.score).padStart(6, "0");
+
+    g.livesEl.innerHTML = "";
+    for (let i = 0; i < MAX_LIVES; i++) {
+      const lost = i >= g.lives ? ' class="lost"' : "";
+      g.livesEl.insertAdjacentHTML("beforeend",
+        `<svg viewBox="0 0 7 6"${lost} aria-hidden="true"><use href="#heart"/></svg>`);
+    }
+    g.livesEl.setAttribute("aria-label", `${g.isCpu ? "컴퓨터 " : ""}목숨 ${g.lives}개`);
+  }
+
+  // 점수판 가운데에 켜진 효과와 남은 초를 보여 줘요 (바뀔 때만 다시 그려요)
+  function updateEffectsHud(g) {
+    const active = Object.keys(g.effects).filter((type) => g.effects[type] > 0);
+    const key = active.map((type) => type + Math.ceil(g.effects[type])).join();
+    if (key === g.effectsHudKey) return;
+    g.effectsHudKey = key;
+    g.effectsEl.innerHTML = active
+      .map((type) => `<span><img src="brick-items/${type}.svg" alt="${EFFECT_NAMES[type]}">${Math.ceil(g.effects[type])}</span>`)
+      .join("");
+  }
+
+  // ===== 키보드 =====
+  const keys = { left: false, right: false };
+
+  window.addEventListener("keydown", (e) => {
+    if (gameEnded) return; // 끝 화면에서는 키가 "다시 하기" 버튼으로 가게 둬요
+    if (e.key === "ArrowLeft") keys.left = true;
+    else if (e.key === "ArrowRight") keys.right = true;
+    else if (e.key === " ") launchPlayer();
+    else return;
+    e.preventDefault(); // 화살표·스페이스로 페이지가 스크롤되지 않게
+  });
+
+  window.addEventListener("keyup", (e) => {
+    if (e.key === "ArrowLeft") keys.left = false;
+    if (e.key === "ArrowRight") keys.right = false;
+  });
+
+  // 키를 누른 채로 다른 창으로 가면 keyup이 안 와서 계속 움직이니 멈춰 줘요
+  window.addEventListener("blur", () => {
+    keys.left = false;
+    keys.right = false;
+  });
+
+  // ===== 터치(손가락)·마우스로 패들 움직이기 =====
+  // 내 게임 판을 손가락으로 누른 채 끌면 패들 가운데가 손가락을 따라오고,
+  // 짧게 톡 치면 공을 쏴요
+  const TAP_MAX_MOVE = 10;  // 이만큼(px) 안 움직이고
+  const TAP_MAX_TIME = 300; // 이 시간(ms) 안에 떼면 "탭"
+  let touchUI = matchMedia("(hover: none) and (pointer: coarse)").matches; // 터치 화면이면 안내 문구를 바꿔요
+  const finger = { id: null, x: 0, y: 0, time: 0, moved: false };
+
+  // 화면 좌표(px) → 게임 판 좌표(도트)
+  function toBoardX(e) {
+    const rect = player.canvas.getBoundingClientRect();
+    return ((e.clientX - rect.left) / rect.width) * W;
+  }
+
+  function movePaddleTo(boardX) {
+    if (gameEnded || player.out) return;
+    player.paddle.x = boardX - player.paddle.w / 2; // 벽 밖으로 나가는 건 update()에서 막아요
+  }
+
+  player.canvas.addEventListener("pointerdown", (e) => {
+    if (gameEnded || finger.id !== null) return;
+    if (e.pointerType === "touch") touchUI = true;
+    Object.assign(finger, { id: e.pointerId, x: e.clientX, y: e.clientY, time: performance.now(), moved: false });
+    try {
+      player.canvas.setPointerCapture(e.pointerId); // 손가락이 판 밖으로 나가도 계속 따라와요
+    } catch {
+      // 잡기에 실패해도 판 안에서는 그대로 따라와요
+    }
+    movePaddleTo(toBoardX(e));
+    e.preventDefault();
+  });
+
+  player.canvas.addEventListener("pointermove", (e) => {
+    if (e.pointerId !== finger.id) return;
+    if (Math.hypot(e.clientX - finger.x, e.clientY - finger.y) > TAP_MAX_MOVE) finger.moved = true;
+    movePaddleTo(toBoardX(e));
+  });
+
+  player.canvas.addEventListener("pointerup", (e) => {
+    if (e.pointerId !== finger.id) return;
+    finger.id = null;
+    const isTap = !finger.moved && performance.now() - finger.time < TAP_MAX_TIME;
+    // 판 왼쪽을 치면 오른쪽 위로, 오른쪽을 치면 왼쪽 위로 (가운데 쪽으로 날아가요)
+    if (isTap && !gameEnded) launchPlayer(toBoardX(e) < W / 2 ? 1 : -1);
+  });
+
+  player.canvas.addEventListener("pointercancel", () => {
+    finger.id = null;
+  });
+
+  // ===== 공 발사와 움직임 =====
+  function launchPlayer(side) {
+    if (player.out || player.ball.launched) return;
+    // 키보드: 왼쪽 화살표를 누르고 있으면 왼쪽 위, 아니면 오른쪽 위
+    launchBall(player, side || (keys.left && !keys.right ? -1 : 1));
+    if (!started) {
+      started = true; // 첫 발사부터 시간을 재고, 대결이면 컴퓨터도 같이 쏴요
+      if (mode === "vs") launchBall(cpu, Math.random() < 0.5 ? -1 : 1);
+    }
+  }
+
+  function launchBall(g, side) {
+    if (g.ball.launched) return;
+    g.ball.launched = true;
+    g.ball.speed = BALL_START_SPEED;
+    // 45도 대각선 위로
+    g.ball.dx = side * Math.SQRT1_2;
+    g.ball.dy = -Math.SQRT1_2;
+  }
+
+  function update(g, dt) {
+    updatePieces(g, dt);
+    if (gameEnded || g.out) return; // 끝났거나 이 판이 탈락했으면 멈춰요
+
+    updateEffects(g, dt);
+    updateDrops(g, dt);
+    for (const bl of g.blasts) bl.age += dt;
+    for (let i = g.blasts.length - 1; i >= 0; i--) {
+      if (g.blasts[i].age >= 0.3) g.blasts.splice(i, 1);
+    }
+
+    // 패들 움직이기: 나는 키보드, 컴퓨터는 스스로
+    const paddle = g.paddle;
+    if (g.isCpu) {
+      cpuThink(g, dt);
+    } else {
+      let dir = 0;
+      if (keys.left) dir -= 1;
+      if (keys.right) dir += 1;
+      paddle.x += dir * PADDLE_SPEED * dt;
+    }
+
+    // 벽 안쪽에서만 움직이게
+    paddle.x = Math.min(Math.max(paddle.x, WALL), W - WALL - paddle.w);
+
+    if (g.ball.launched) {
+      moveBall(g, dt);
+    } else {
+      // 발사 전에는 공이 패들 가운데에 붙어 다녀요
+      g.ball.x = paddle.x + paddle.w / 2 - g.ball.size / 2;
+      g.ball.y = paddle.y - g.ball.size;
+    }
+  }
+
+  function moveBall(g, dt) {
+    const ball = g.ball;
+    // 날아가는 동안 점점 빨라져요 (달팽이 효과 중에는 느린 채로 멈춰 있어요)
+    const slowed = g.effects.slow > 0;
+    if (!slowed) ball.speed = Math.min(ball.speed + BALL_ACCEL * dt, BALL_MAX_SPEED);
+    const v = ball.speed * (slowed ? SLOW_FACTOR : 1);
+
+    // 빠른 공이 한 프레임에 벽돌을 건너뛰지 않게 3도트씩 잘게 나눠서 움직여요
+    const steps = Math.max(1, Math.ceil((v * dt) / 3));
+    for (let i = 0; i < steps; i++) {
+      stepBall(g, dt / steps, v);
+      if (!ball.launched || gameEnded) return;
+    }
+  }
+
+  function stepBall(g, dt, v) {
+    const ball = g.ball;
+    const paddle = g.paddle;
+    const prevX = ball.x;
+    const prevY = ball.y;
+    const prevBottom = ball.y + ball.size;
+    ball.x += ball.dx * v * dt;
+    ball.y += ball.dy * v * dt;
+
+    // 왼쪽·오른쪽·위쪽 벽에 닿으면 벽 안으로 되돌리고 방향을 뒤집어요
+    if (ball.x < WALL) {
+      ball.x = WALL;
+      ball.dx = Math.abs(ball.dx);
+    } else if (ball.x + ball.size > W - WALL) {
+      ball.x = W - WALL - ball.size;
+      ball.dx = -Math.abs(ball.dx);
+    }
+    if (ball.y < WALL) {
+      ball.y = WALL;
+      ball.dy = Math.abs(ball.dy);
+    }
+
+    hitBrick(g, prevX, prevY);
+    if (gameEnded) return;
+
+    // 패들에 닿으면 위로 튕겨요.
+    // 공이 빠르면 한 프레임에 패들을 건너뛸 수 있어서
+    // "이번 프레임에 패들 윗면 선을 지나갔는지"로 확인해요
+    const bottom = ball.y + ball.size;
+    const overPaddle = ball.x + ball.size > paddle.x && ball.x < paddle.x + paddle.w;
+    if (ball.dy > 0 && overPaddle && prevBottom <= paddle.y && bottom >= paddle.y) {
+      ball.y = paddle.y - ball.size;
+      // 패들 가운데에 맞으면 거의 똑바로, 끝에 맞을수록 옆으로 비스듬히 (최대 60도)
+      const hit = (ball.x + ball.size / 2 - (paddle.x + paddle.w / 2)) / (paddle.w / 2);
+      const angle = Math.max(-1, Math.min(1, hit)) * (Math.PI / 3);
+      ball.dx = Math.sin(angle);
+      ball.dy = -Math.cos(angle);
+    }
+
+    // 바닥 밑으로 완전히 빠지면 목숨이 하나 줄어요
+    if (ball.y > H) {
+      loseLife(g);
+    }
+  }
+
+  // ===== 벽돌 맞히기 =====
+  function hitBrick(g, prevX, prevY) {
+    const ball = g.ball;
+    const s = ball.size;
+    for (const b of g.bricks) {
+      if (!b.alive) continue;
+      // 공과 벽돌이 겹치지 않으면 다음 벽돌로
+      if (ball.x + s <= b.x || ball.x >= b.x + b.w || ball.y + s <= b.y || ball.y >= b.y + b.h) continue;
+
+      // 불꽃 공은 튕기지 않고 그대로 뚫고 지나가요.
+      // 보통 공은 바로 전 위치가 벽돌 옆이었으면 옆면에 맞은 것 → 좌우로 튕기고,
+      // 아니면 윗면·아랫면에 맞은 것 → 위아래로 튕겨요
+      if (g.effects.fire <= 0) {
+        const wasBeside = prevX + s <= b.x || prevX >= b.x + b.w;
+        if (wasBeside) {
+          ball.x = prevX;
+          ball.dx = -ball.dx;
+        } else {
+          ball.y = prevY;
+          ball.dy = -ball.dy;
+        }
+      }
+
+      breakBrick(g, b);
+      updateHud(g);
+
+      if (g.bricks.every((brick) => !brick.alive)) boardCleared(g);
+      return; // 한 번에 벽돌 하나만 맞혀요
+    }
+  }
+
+  function breakBrick(g, b) {
+    if (!b.alive) return;
+    b.alive = false;
+    spawnPieces(g, b);
+    g.score += BRICK_POINTS;
+
+    if (b.item === "bomb") {
+      // 펑! 둘레 8칸을 부숴요. 그 안에 폭탄이 또 있으면 그것도 터져요
+      g.blasts.push({ x: b.x + b.w / 2, y: b.y + b.h / 2, age: 0 });
+      for (const other of g.bricks) {
+        if (Math.abs(other.row - b.row) <= 1 && Math.abs(other.col - b.col) <= 1) breakBrick(g, other);
+      }
+    } else if (b.item) {
+      g.drops.push({ type: b.item, x: b.x + b.w / 2, y: b.y + b.h / 2 });
+    }
+  }
+
+  // ===== 떨어지는 아이템과 효과 =====
+  function updateDrops(g, dt) {
+    const paddle = g.paddle;
+    for (let i = g.drops.length - 1; i >= 0; i--) {
+      const d = g.drops[i];
+      d.y += DROP_SPEED * dt;
+      // 캡슐(14×14)이 패들에 닿으면 받은 것
+      const caught = d.y + 7 >= paddle.y && d.y - 7 <= paddle.y + paddle.h
+        && d.x + 7 >= paddle.x && d.x - 7 <= paddle.x + paddle.w;
+      if (caught) {
+        g.effects[d.type] = ITEMS[d.type].duration; // 같은 걸 또 받으면 시간이 처음부터 다시
+        g.drops.splice(i, 1);
+      } else if (d.y - 7 > H) {
+        g.drops.splice(i, 1); // 놓친 아이템은 사라져요
+      }
+    }
+  }
+
+  function updateEffects(g, dt) {
+    for (const type in g.effects) g.effects[type] = Math.max(0, g.effects[type] - dt);
+
+    // 긴 패들: 가운데를 지키면서 1초에 120도트 빠르기로 늘었다 줄었다 해요
+    const paddle = g.paddle;
+    const targetW = g.effects.long > 0 ? PADDLE_LONG_W : PADDLE_W;
+    if (paddle.w !== targetW) {
+      const center = paddle.x + paddle.w / 2;
+      const step = 120 * dt;
+      paddle.w = paddle.w < targetW ? Math.min(paddle.w + step, targetW) : Math.max(paddle.w - step, targetW);
+      paddle.x = center - paddle.w / 2;
+    }
+
+    updateEffectsHud(g);
+  }
+
+  // ===== 컴퓨터 =====
+  // 공이 내려오면 떨어질 자리를 계산해서 그리로 가고(조금씩 잘못 짐작해요),
+  // 공이 올라가는 동안에는 떨어지는 아이템을 받으러 가요
+  function cpuThink(g, dt) {
+    const ball = g.ball;
+    const paddle = g.paddle;
+    let target = paddle.x + paddle.w / 2; // 가만히 있기
+
+    if (!ball.launched) {
+      if (started) {
+        g.cpu.wait -= dt;
+        if (g.cpu.wait <= 0) launchBall(g, Math.random() < 0.5 ? -1 : 1);
+      }
+    } else if (ball.dy > 0) {
+      // 공이 내려오기 시작할 때마다 새로 짐작해요 (가끔 크게 틀려서 놓쳐요)
+      if (!g.cpu.falling) {
+        g.cpu.falling = true;
+        g.cpu.aim = (Math.random() * 2 - 1) * CPU_AIM_ERROR;
+      }
+      target = predictLandingX(ball, paddle.y) + ball.size / 2 + g.cpu.aim;
+    } else {
+      g.cpu.falling = false;
+      const drop = g.drops.filter((d) => d.y < paddle.y).sort((a, b) => b.y - a.y)[0];
+      target = drop ? drop.x : ball.x + ball.size / 2;
+    }
+
+    const diff = target - (paddle.x + paddle.w / 2);
+    const move = CPU_SPEED * dt;
+    if (Math.abs(diff) > 2) paddle.x += Math.max(-move, Math.min(move, diff));
+  }
+
+  // 공이 패들 높이까지 내려왔을 때의 x 위치 (벽에 튕기는 것까지 계산, 벽돌은 무시)
+  function predictLandingX(ball, paddleY) {
+    const left = WALL;
+    const span = W - WALL - ball.size - left;
+    const x = ball.x + (ball.dx / ball.dy) * (paddleY - ball.size - ball.y);
+    let t = (x - left) % (2 * span);
+    if (t < 0) t += 2 * span;
+    if (t > span) t = 2 * span - t;
+    return left + t;
+  }
+
+  // ===== 목숨, 클리어, 끝내기 =====
+  function loseLife(g) {
+    g.lives -= 1;
+    updateHud(g);
+    // 공을 놓치면 켜져 있던 효과는 끝나지만, 떨어지던 아이템은 그대로 계속 떨어져서 받을 수 있어요
+    for (const type in g.effects) g.effects[type] = 0;
+    resetBall(g); // 패들 위로 돌아와서 다시 쏘기를 기다려요
+    g.cpu.wait = CPU_LAUNCH_DELAY;
+
+    if (g.lives > 0) return;
+    if (mode === "solo") {
+      endGame({ kind: "over" });
+    } else {
+      g.out = true;
+      // 둘 다 목숨이 끝났으면 점수로 승부
+      if (player.out && cpu.out) endGame({ kind: "vs", reason: "둘 다 목숨이 끝났어요" });
+    }
+  }
+
+  function boardCleared(g) {
+    if (mode === "solo") endGame({ kind: "clear" });
+    else endGame({ kind: "vs", winner: g, reason: g.isCpu ? "컴퓨터가 먼저 다 깼어요" : "먼저 다 깼어요!" });
+  }
+
+  // 83.4초 → "1분 23.4초", 9.24초 → "9.2초"
+  function formatTime(sec) {
+    const tenths = Math.round(sec * 10);
+    const min = Math.floor(tenths / 600);
+    const rest = ((tenths % 600) / 10).toFixed(1);
+    return min > 0 ? `${min}분 ${rest}초` : `${rest}초`;
+  }
+
+  const endBox = document.getElementById("endscreen");
+  const endTrophy = document.getElementById("end-trophy");
+  const restartButton = document.getElementById("restart");
+
+  function endGame(result) {
+    gameEnded = true;
+    keys.left = false;
+    keys.right = false;
+
+    let title, label, value, win;
+    if (result.kind === "over") {
+      [title, label, value, win] = ["게임 오버", "최종 점수", String(player.score).padStart(6, "0"), false];
+    } else if (result.kind === "clear") {
+      [title, label, value, win] = ["클리어!", "걸린 시간", formatTime(playTime), true];
+    } else {
+      // 대결: 먼저 다 깬 쪽이 이기고, 아니면 점수로
+      let winner = result.winner;
+      if (!winner && player.score !== cpu.score) winner = player.score > cpu.score ? player : cpu;
+      title = !winner ? "무승부!" : winner === player ? "승리!" : "패배!";
+      label = result.reason;
+      value = `나 ${player.score} : ${cpu.score} CPU`;
+      win = winner === player;
+    }
+
+    document.getElementById("end-title").textContent = title;
+    document.getElementById("end-label").textContent = label;
+    document.getElementById("end-value").textContent = value;
+    endBox.classList.toggle("win", win);
+    endTrophy.style.display = win ? "" : "none";
+    endBox.hidden = false;
+    restartButton.focus(); // 엔터나 스페이스바로 바로 다시 할 수 있게
+  }
+
+  function restartGame() {
+    const layout = makeItemLayout(); // 대결이면 두 판 모두 같은 아이템 자리
+    for (const g of [player, cpu]) resetBoard(g, layout);
+    started = false;
+    gameEnded = false;
+    playTime = 0;
+    updateVsTime();
+    endBox.hidden = true;
+    document.activeElement.blur();
+  }
+
+  restartButton.addEventListener("click", restartGame);
+
+  // ===== 대결 남은 시간 =====
+  const vsTimeEl = document.getElementById("vs-time");
+  function updateVsTime() {
+    const left = Math.max(0, Math.ceil(VS_TIME - playTime));
+    const text = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
+    if (vsTimeEl.textContent !== text) vsTimeEl.textContent = text;
+    vsTimeEl.classList.toggle("hurry", left <= 10); // 10초 남으면 빨갛게
+  }
+
+  // ===== 모드 바꾸기 =====
+  const modeButtons = document.querySelectorAll(".mode button");
+  function setMode(next) {
+    mode = next;
+    const vs = mode === "vs";
+    document.querySelector(".cabinet").classList.toggle("vs", vs);
+    document.getElementById("screen-cpu").hidden = !vs;
+    document.getElementById("vsbar").hidden = !vs;
+    player.screenEl.querySelector(".score .label").textContent = vs ? "나" : "SCORE";
+    modeButtons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
+    restartGame();
+  }
+  modeButtons.forEach((b) => b.addEventListener("click", () => {
+    if (b.dataset.mode !== mode) setMode(b.dataset.mode);
+    b.blur(); // 스페이스바가 버튼이 아니라 발사로 가게
+  }));
+
+  // ===== 게임 반복 =====
+  let lastTime = 0;
+  function loop(time) {
+    // 프레임 사이 시간(초)으로 움직여서 화면 주사율이 달라도 속도가 같아요
+    const dt = Math.min((time - lastTime) / 1000, 0.05);
+    lastTime = time;
+
+    if (started && !gameEnded) {
+      playTime += dt;
+      if (mode === "vs") {
+        updateVsTime();
+        if (playTime >= VS_TIME) endGame({ kind: "vs", reason: "시간 끝!" });
+      }
+    }
+    for (const g of activeBoards()) {
+      update(g, dt);
+      draw(g, time);
+    }
+    requestAnimationFrame(loop);
+  }
+
+  for (const g of [player, cpu]) new ResizeObserver(() => resize(g)).observe(g.canvas);
+  restartGame();
+  requestAnimationFrame((time) => {
+    lastTime = time;
+    requestAnimationFrame(loop);
+  });
+</script>
+
+</body>
+</html>

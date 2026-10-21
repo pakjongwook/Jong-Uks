@@ -1,0 +1,1607 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#5ea94c">
+  <title>🌈 나를 소개합니다!</title>
+  <style>
+    /* 도트 글꼴: 갈무리 (fonts 폴더, OFL 라이선스)
+       글자가 또렷하게 보이도록 Galmuri14는 14px, Galmuri11은 11·22·33px로만 써요 */
+    @font-face {
+      font-family: "Galmuri14";
+      src: url("fonts/Galmuri14.woff2") format("woff2");
+      font-display: swap;
+    }
+    @font-face {
+      font-family: "Galmuri11";
+      src: url("fonts/Galmuri11-Bold.woff2") format("woff2");
+      font-weight: 700;
+      font-display: swap;
+    }
+
+    :root {
+      --t: 8px;                 /* 모든 크기는 8px 타일의 배수 */
+      --grass: #5ea94c;
+      --grass-dark: #4c9440;
+      --grass-light: #74bd5c;
+      --win: #1c2a6b;
+      --win-deep: #10183f;
+      --slot: #2b3b85;
+      --ink: #ffffff;
+      --ink-soft: #c9d3ff;
+      --gold: #ffe066;
+      --hp: #7ee06a;
+      --red: #ff7a5c;
+      --shadow: rgba(16, 40, 20, 0.35);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    ::selection { background: var(--gold); color: var(--win-deep); }
+
+    html {
+      background: var(--grass);
+      -webkit-tap-highlight-color: transparent;
+      scrollbar-color: var(--win) var(--grass-dark);
+    }
+
+    body {
+      font-family: "Galmuri14", "Malgun Gothic", sans-serif;
+      font-size: 14px;
+      line-height: 24px;
+      color: var(--ink);
+      overflow-x: hidden;
+      min-height: 100vh;
+      /* 위에서 내려다본 잔디 타일: 두 가지 초록이 번갈아 깔린 32px 칸 */
+      background-color: var(--grass);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' shape-rendering='crispEdges'%3E%3Crect x='32' width='32' height='32' fill='%2358a247'/%3E%3Crect y='32' width='32' height='32' fill='%2358a247'/%3E%3Cg fill='%234c9440'%3E%3Crect x='8' y='8' width='2' height='4'/%3E%3Crect x='12' y='6' width='2' height='6'/%3E%3Crect x='40' y='36' width='2' height='4'/%3E%3Crect x='44' y='34' width='2' height='6'/%3E%3Crect x='22' y='50' width='2' height='4'/%3E%3Crect x='54' y='6' width='2' height='4'/%3E%3C/g%3E%3Cg fill='%2374bd5c'%3E%3Crect x='26' y='18' width='4' height='2'/%3E%3Crect x='4' y='42' width='4' height='2'/%3E%3Crect x='50' y='56' width='4' height='2'/%3E%3C/g%3E%3C/svg%3E");
+      background-size: 64px 64px;
+    }
+
+    a { color: inherit; }
+
+    /* 도트 아이콘 (스크립트가 그려 넣어요) */
+    .ico { display: inline-flex; vertical-align: middle; flex: none; }
+    .ico svg { display: block; }
+
+    /* ───── 세계: 잔디 위의 구불구불한 흙길, 나무, 떨어지는 낙엽 ───── */
+    .world {
+      position: relative;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: calc(var(--t) * 3) calc(var(--t) * 3) 0;
+    }
+
+    /* 나무, 꽃, 흙길은 화면 전체 폭에 그려요 */
+    .scenery {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: calc(50% - 50vw);
+      width: 100vw;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .scenery svg { position: absolute; }
+
+    .leaves {
+      position: fixed;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .leaves svg {
+      position: absolute;
+      top: -24px;
+      animation: leafFall linear infinite;
+    }
+    /* 끊어지는 도트 움직임 */
+    @keyframes leafFall {
+      0%   { transform: translate(0, 0) rotate(0deg); }
+      25%  { transform: translate(32px, 28vh) rotate(90deg); }
+      50%  { transform: translate(-24px, 56vh) rotate(180deg); }
+      75%  { transform: translate(24px, 84vh) rotate(270deg); }
+      100% { transform: translate(0, 112vh) rotate(360deg); }
+    }
+
+    /* 잔디(와 창 사이 틈)를 누르면 흩날리는 낙엽 */
+    .scatter {
+      position: fixed;
+      z-index: 40;
+      pointer-events: none;
+      animation: scatter 1.4s steps(14) forwards;
+    }
+    @keyframes scatter {
+      0%   { transform: translate(-50%, -50%) rotate(0); opacity: 1; }
+      40%  { transform: translate(calc(-50% + var(--dx) * 0.8), calc(-50% + var(--dy))) rotate(180deg); opacity: 1; }
+      100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy) + 40px)) rotate(360deg); opacity: 0; }
+    }
+
+    /* ───── RPG 창 ───── */
+    .win {
+      position: relative;
+      z-index: 2;
+      color: var(--ink);
+      background: var(--win);
+      border: 12px solid transparent;
+      border-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36' shape-rendering='crispEdges'%3E%3Cg fill='%2310183f'%3E%3Crect x='4' width='28' height='36'/%3E%3Crect y='4' width='36' height='28'/%3E%3C/g%3E%3Cg fill='%23ffffff'%3E%3Crect x='8' y='4' width='20' height='28'/%3E%3Crect x='4' y='8' width='28' height='20'/%3E%3C/g%3E%3Crect x='8' y='8' width='20' height='20' fill='%231c2a6b'/%3E%3C/svg%3E") 12 fill / 12px stretch;
+      background-clip: padding-box;
+      padding: calc(var(--t) * 2);
+      filter: drop-shadow(0 8px 0 var(--shadow));
+    }
+
+    /* 창 위의 이름표 */
+    .tab {
+      position: absolute;
+      top: -32px;
+      left: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 8px;
+      font-family: "Galmuri14", "Malgun Gothic", sans-serif;
+      font-weight: 400;
+      font-size: 14px;
+      line-height: 32px;
+      color: var(--gold);
+      background: var(--win-deep);
+      border: 4px solid #fff;
+      box-shadow: 0 0 0 4px var(--win-deep);
+      white-space: nowrap;
+    }
+    .win.has-tab { margin-top: calc(var(--t) * 3); }
+
+    .stack {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      gap: calc(var(--t) * 4);
+    }
+
+    /* ───── 지역 이름 배너 ───── */
+    .area {
+      justify-self: center;
+      padding: var(--t) calc(var(--t) * 2);
+      animation: areaIn 0.9s steps(6) both;
+    }
+    .area p {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-family: "Galmuri11", "Malgun Gothic", sans-serif;
+      font-weight: 700;
+      font-size: 33px;
+      line-height: 40px;
+      color: var(--gold);
+      white-space: nowrap;
+    }
+    @keyframes areaIn {
+      from { transform: translateY(-48px); opacity: 0; }
+      to   { transform: translateY(0); opacity: 1; }
+    }
+
+    /* ───── 상태창 ───── */
+    .intro {
+      display: grid;
+      gap: calc(var(--t) * 4);
+      align-items: start;
+    }
+
+    .status-top {
+      display: flex;
+      gap: calc(var(--t) * 2);
+      align-items: center;
+    }
+
+    .portrait {
+      flex: none;
+      width: 112px;
+      height: 112px;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      border: 4px solid #fff;
+      background:
+        linear-gradient(var(--grass-light) 0 0) bottom / 100% 24px no-repeat,
+        #3d5bb5;
+      box-shadow: 0 0 0 4px var(--win-deep);
+      font: inherit;
+    }
+    .portrait svg {
+      width: 96px;
+      height: 96px;
+      animation: idle 1s steps(2) infinite;
+    }
+    @keyframes idle {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-4px); }
+    }
+    .portrait:active svg { transform: translateY(4px); animation: none; }
+
+    .who { min-width: 0; }
+    .name {
+      font-family: "Galmuri11", "Malgun Gothic", sans-serif;
+      font-weight: 700;
+      font-size: 33px;
+      line-height: 40px;
+      word-break: keep-all;
+    }
+    .level {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 0 8px;
+      font-family: "Galmuri11", "Malgun Gothic", sans-serif;
+      font-weight: 700;
+      font-size: 11px;
+      line-height: 24px;
+      color: var(--win-deep);
+      background: var(--gold);
+    }
+
+    .stats {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 8px 16px;
+      padding-top: 16px;
+      border-top: 4px dotted rgba(255, 255, 255, 0.35);
+    }
+    .stats dt { color: var(--gold); white-space: nowrap; }
+    .stats dd { word-break: keep-all; }
+
+    /* 만든 게임 경험치 막대 */
+    .exp {
+      display: grid;
+      grid-template-columns: repeat(var(--max), 16px);
+      gap: 4px;
+      margin-top: 4px;
+    }
+    .exp i { height: 8px; background: var(--slot); }
+    .exp i.on { background: var(--hp); }
+
+    /* ───── 대화창 ───── */
+    .dialog {
+      min-height: 160px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .dialog .line {
+      line-height: 32px;
+      min-height: 64px;
+      word-break: keep-all;
+    }
+    .dialog .next {
+      position: absolute;
+      right: 8px;
+      bottom: 0;
+      color: var(--gold);
+      visibility: hidden;
+      animation: blink 0.8s steps(2) infinite;
+    }
+    .dialog.done .next { visibility: visible; }
+    .dialog .hint {
+      margin-top: 8px;
+      font-family: "Galmuri11", "Malgun Gothic", sans-serif;
+      font-weight: 700;
+      font-size: 11px;
+      color: var(--ink-soft);
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+
+    /* ───── 만든 게임 메뉴 (▶ 커서로 고르기) ───── */
+    .menu { list-style: none; display: grid; gap: 8px; }
+    .menu a {
+      display: grid;
+      grid-template-columns: 16px 56px 1fr auto;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      text-decoration: none;
+      color: var(--ink);
+      outline: none;
+    }
+    .menu .cursor { color: var(--gold); visibility: hidden; }
+    /* 고른 줄은 색이 뒤집혀요 */
+    .menu a.sel { background: #fff; color: var(--win-deep); }
+    .menu a.sel .cursor { visibility: visible; color: var(--win-deep); animation: blink 0.8s steps(2) infinite; }
+    .menu a.sel .desc { color: #3a4a8a; }
+    .menu a:focus-visible { box-shadow: 0 0 0 4px var(--gold); }
+    .menu a:active { transform: translateY(4px); }
+
+    .thumb {
+      width: 56px;
+      height: 56px;
+      display: grid;
+      place-items: center;
+      border: 4px solid #fff;
+      box-shadow: 0 0 0 4px var(--win-deep);
+    }
+    .thumb.mole   { background: repeating-linear-gradient(90deg, #8fd35f 0 16px, #84ca52 16px 32px); }
+    .thumb.rps    { background: linear-gradient(#fff3b0 0 50%, #ffd6e8 50%); }
+    .thumb.forest { background: linear-gradient(#0f2e24 0 64%, #1f4a32 64%); }
+    .thumb.arcade { background: #05060f; }
+    .thumb.club   { background: linear-gradient(#6b1f22 0 78%, #7d7770 78%); }
+
+    .game-name { display: block; color: inherit; word-break: keep-all; }
+    .desc {
+      display: block;
+      margin-top: 4px;
+      font-family: "Galmuri11", "Malgun Gothic", sans-serif;
+      font-weight: 700;
+      font-size: 11px;
+      line-height: 16px;
+      color: var(--ink-soft);
+      word-break: keep-all;
+    }
+    .go {
+      font-family: "Galmuri11", "Malgun Gothic", sans-serif;
+      font-weight: 700;
+      font-size: 11px;
+      line-height: 24px;
+      padding: 0 8px;
+      color: var(--win-deep);
+      background: var(--hp);
+      white-space: nowrap;
+    }
+    .go.soon { background: var(--ink-soft); }
+
+    /* ───── 취미 = 인벤토리 슬롯 ───── */
+    .skills { list-style: none; display: grid; gap: 8px; }
+    .skill {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      gap: 16px;
+      align-items: center;
+      padding: 4px;
+      font: inherit;
+      color: inherit;
+      text-align: left;
+      background: none;
+      border: 0;
+      cursor: pointer;
+    }
+    .slot {
+      width: 56px;
+      height: 56px;
+      display: grid;
+      place-items: center;
+      background: var(--slot);
+      border: 4px solid var(--win-deep);
+      box-shadow: inset -4px -4px 0 rgba(0, 0, 0, 0.25), inset 4px 4px 0 rgba(255, 255, 255, 0.15);
+    }
+    .skill:active .slot { transform: translateY(4px); }
+    @media (hover: hover) {
+      .skill:hover .slot { outline: 4px solid var(--gold); }
+    }
+    .skill-name { display: block; color: var(--gold); }
+    .skill-desc {
+      display: block;
+      margin-top: 4px;
+      font-family: "Galmuri11", "Malgun Gothic", sans-serif;
+      font-weight: 700;
+      font-size: 11px;
+      line-height: 16px;
+      color: var(--ink-soft);
+      word-break: keep-all;
+    }
+
+    /* ───── TMI ───── */
+    .facts { list-style: none; }
+    .facts li {
+      padding: 8px 0;
+      word-break: keep-all;
+      border-bottom: 4px dotted rgba(255, 255, 255, 0.25);
+    }
+    .facts li:last-child { border-bottom: 0; }
+
+    /* ───── 미니 퀘스트: 명령 창 ───── */
+    .meter {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 4px;
+      margin: 8px 0;
+      padding: 4px;
+      background: var(--win-deep);
+    }
+    .meter i { height: 16px; background: var(--slot); }
+    .meter i.on { background: var(--hp); }
+    .timer { color: var(--ink-soft); min-height: 24px; }
+    .timer.urgent { color: var(--red); animation: blink 0.4s steps(2) infinite; }
+
+    .commands {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 16px;
+      padding: 8px;
+      background: var(--win-deep);
+    }
+    .cmd {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 48px;
+      padding: 8px;
+      white-space: nowrap;
+      font: inherit;
+      text-align: left;
+      color: var(--ink);
+      background: none;
+      border: 0;
+      cursor: pointer;
+    }
+    .cmd .cursor { color: var(--gold); visibility: hidden; }
+    .cmd:focus-visible,
+    .cmd:active { background: #fff; color: var(--win-deep); outline: none; }
+    .cmd:focus-visible .cursor,
+    .cmd:active .cursor { visibility: visible; color: var(--win-deep); }
+    @media (hover: hover) {
+      .cmd:hover { background: #fff; color: var(--win-deep); }
+      .cmd:hover .cursor { visibility: visible; color: var(--win-deep); }
+    }
+    .cmd.count:not(:hover):not(:focus-visible):not(:active) { color: var(--gold); }
+    .count-num {
+      min-width: 32px;
+      margin-left: 8px;
+      text-align: center;
+      color: var(--win-deep);
+      background: var(--gold);
+    }
+
+    .portrait:focus-visible,
+    .skill:focus-visible,
+    .dialog:focus-visible {
+      outline: 4px dashed var(--gold);
+      outline-offset: 4px;
+    }
+
+    /* ───── 세이브 포인트 (마무리) ───── */
+    .save {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 16px;
+      align-items: center;
+    }
+    .crystal svg { animation: idle 1.2s steps(2) infinite; }
+    .save .made { color: var(--ink-soft); }
+    .today {
+      word-break: keep-all;
+      display: inline-block;
+      margin-top: 8px;
+      padding: 0 8px;
+      color: var(--win-deep);
+      background: var(--gold);
+    }
+
+    .forest-edge {
+      position: relative;
+      z-index: 1;
+      height: 136px;
+      margin-top: calc(var(--t) * 5);
+      pointer-events: none;
+    }
+
+    /* ───── 퀘스트 결과 창, 말풍선, 폭죽 ───── */
+    .popup {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      z-index: 100;
+      width: max-content;
+      max-width: calc(100vw - 32px);
+      text-align: center;
+      font-family: "Galmuri11", "Malgun Gothic", sans-serif;
+      font-weight: 700;
+      font-size: 22px;
+      line-height: 32px;
+      pointer-events: none;
+      animation: popup 3s steps(1, end) forwards;
+    }
+    .popup small { display: block; font-family: "Galmuri14", sans-serif; font-weight: 400; font-size: 14px; line-height: 24px; color: var(--ink-soft); }
+    .popup.fail { color: var(--red); }
+    .popup.clear { color: var(--gold); }
+    @keyframes popup {
+      0%   { transform: translate(-50%, -50%) scale(0.6); opacity: 0; }
+      4%   { transform: translate(-50%, -50%) scale(0.85); opacity: 1; }
+      8%   { transform: translate(-50%, -50%) scale(1); }
+      90%  { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+    }
+
+    .bubble {
+      position: fixed;
+      z-index: 100;
+      padding: 4px 16px;
+      white-space: nowrap;
+      color: var(--win-deep);
+      background: #fff;
+      box-shadow: 0 0 0 4px var(--win-deep);
+      pointer-events: none;
+      transform: translate(-50%, -100%);
+      animation: bubble 2.2s steps(1, end) forwards;
+    }
+    .bubble::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: -12px;
+      width: 8px;
+      height: 8px;
+      background: #fff;
+      box-shadow: 0 4px 0 #fff, -4px 0 0 var(--win-deep), 4px 0 0 var(--win-deep), 0 8px 0 var(--win-deep);
+      transform: translateX(-50%);
+    }
+    @keyframes bubble {
+      0%   { opacity: 0; transform: translate(-50%, -80%); }
+      6%   { opacity: 1; transform: translate(-50%, -100%); }
+      90%  { opacity: 1; }
+      100% { opacity: 0; transform: translate(-50%, -120%); }
+    }
+
+    .confetti {
+      position: fixed;
+      z-index: 99;
+      font-size: 24px;
+      pointer-events: none;
+      animation: fall 2.5s steps(20) forwards;
+    }
+    @keyframes fall {
+      0%   { transform: translateY(0) rotate(0); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }
+
+    /* ───── 넓은 화면: 상태창과 대화창을 나란히 ───── */
+    @media (min-width: 860px) {
+      .world { padding-top: calc(var(--t) * 5); }
+      .intro { grid-template-columns: 1.15fr 1fr; }
+      .pair  { display: grid; grid-template-columns: 1fr 1fr; gap: calc(var(--t) * 4); align-items: start; }
+      .menu  { grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+      .commands { grid-template-columns: repeat(4, 1fr); }
+    }
+    @media (max-width: 859px) {
+      .pair { display: grid; gap: calc(var(--t) * 4); }
+    }
+
+    @media (max-width: 400px) {
+      .area p { font-size: 22px; line-height: 32px; gap: 8px; }
+      .win { padding: 8px; }
+      .portrait { width: 104px; height: 104px; }
+      .menu a { grid-template-columns: 16px 48px 1fr auto; padding: 8px 4px; }
+      .thumb { width: 48px; height: 48px; }
+      .commands { padding: 4px; }
+      .save { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+    }
+
+    /* 움직임 줄이기 설정을 켠 사람에게는 애니메이션을 멈춰요 */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+      .leaves { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="leaves" id="leaves" aria-hidden="true"></div>
+
+  <div class="world" id="world">
+    <div class="scenery" id="scenery" aria-hidden="true"></div>
+
+    <main class="stack" id="stack">
+      <!-- 🌻 지역 이름 배너 -->
+      <header class="win area">
+        <p><span class="ico" data-icon="popper" data-scale="3"></span>어서오세요!<span class="ico" data-icon="popper" data-scale="3" data-flip></span></p>
+      </header>
+
+      <!-- 🙋 상태창 + 대화창 -->
+      <section class="intro" aria-label="자기소개">
+        <div class="win status">
+          <div class="status-top">
+            <button class="portrait" id="avatar" type="button" aria-label="표정 바꾸기">
+              <svg id="sprite" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true"></svg>
+            </button>
+            <div class="who">
+              <h1 class="name" id="name"></h1>
+              <span class="level">Lv.1 게임 만드는 연습생</span>
+            </div>
+          </div>
+          <dl class="stats">
+            <dt>목표</dt>
+            <dd>✨ 매일매일 즐겁게 사는 게 목표인 사람 ✨</dd>
+            <dt>만든 게임</dt>
+            <dd>
+              <span id="gameCount"></span>
+              <span class="exp" id="exp" aria-hidden="true"></span>
+            </dd>
+            <dt>메인 퀘스트</dt>
+            <dd>🎮 마음이 힘들고 아픈 사람에게 위로가 되는 게임 만들기 💖🫂</dd>
+          </dl>
+        </div>
+
+        <div class="win has-tab dialog" id="dialog" tabindex="0" role="button" aria-label="다음 대사 보기">
+          <span class="tab" id="speaker"></span>
+          <p class="line" id="line" aria-hidden="true"></p>
+          <p class="sr-only" id="lineLive" aria-live="polite"></p>
+          <p class="hint">창을 누르면 다음 대사 ▶</p>
+          <span class="next" aria-hidden="true">▼</span>
+        </div>
+      </section>
+
+      <!-- 🕹️ 내가 만든 게임 -->
+      <nav class="win has-tab" aria-labelledby="gamesTitle">
+        <h2 class="tab" id="gamesTitle"><span class="ico" data-icon="joystick" data-scale="2"></span>내가 만든 게임</h2>
+        <ul class="menu" id="menu">
+          <li>
+            <a href="mole.html">
+              <span class="cursor" aria-hidden="true">▶</span>
+              <span class="thumb mole" aria-hidden="true"><span class="ico" id="randomAnimalThumb" data-icon="mole" data-scale="3"></span></span>
+              <span>
+                <span class="game-name">랜덤동물 잡기</span>
+                <span class="desc">30초 동안 쏙 올라오는 동물을 콕! 🔨</span>
+              </span>
+              <span class="go">플레이</span>
+            </a>
+          </li>
+          <li>
+            <a href="mol.html">
+              <span class="cursor" aria-hidden="true">▶</span>
+              <span class="thumb club" aria-hidden="true"><span class="ico" data-icon="mole" data-scale="3"></span></span>
+              <span>
+                <span class="game-name">두더지 클럽</span>
+                <span class="desc">성냥갑에서 튀어나오는 두더지를 콕! 🔥</span>
+              </span>
+              <span class="go">플레이</span>
+            </a>
+          </li>
+          <li>
+            <a href="rps.html">
+              <span class="cursor" aria-hidden="true">▶</span>
+              <span class="thumb rps" aria-hidden="true"><span class="ico" data-icon="peace" data-scale="3"></span></span>
+              <span>
+                <span class="game-name">가위바위보 오락실</span>
+                <span class="desc">3초 안에 내고 먼저 3승! ⏰</span>
+              </span>
+              <span class="go">플레이</span>
+            </a>
+          </li>
+          <li>
+            <a href="bo.html">
+              <span class="cursor" aria-hidden="true">▶</span>
+              <span class="thumb forest" aria-hidden="true"><span class="ico" data-icon="pine" data-scale="3"></span></span>
+              <span>
+                <span class="game-name">밤의 숲 가위바위보</span>
+                <span class="desc">반딧불 숲에서 먼저 3승! ✨</span>
+              </span>
+              <span class="go">플레이</span>
+            </a>
+          </li>
+          <li>
+            <a href="arcade.html" data-soon>
+              <span class="cursor" aria-hidden="true">▶</span>
+              <span class="thumb arcade" aria-hidden="true"><span class="ico" data-icon="stick" data-scale="3"></span></span>
+              <span>
+                <span class="game-name">네온 아케이드</span>
+                <span class="desc">GAME START 화면, 게임은 준비 중! 🛠️</span>
+              </span>
+              <span class="go soon">구경</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <div class="pair">
+        <!-- 🎯 나의 취미 -->
+        <section class="win has-tab" aria-labelledby="skillsTitle">
+          <h2 class="tab" id="skillsTitle"><span class="ico" data-icon="target" data-scale="2"></span>나의 취미</h2>
+          <ul class="skills" id="hobbies"></ul>
+        </section>
+
+        <!-- 💡 나에 대한 TMI -->
+        <section class="win has-tab" aria-labelledby="factsTitle">
+          <h2 class="tab" id="factsTitle"><span class="ico" data-icon="bulb" data-scale="2"></span>나에 대한 TMI</h2>
+          <ul class="facts">
+            <li>🥢 제일 좋아하는 음식은 탕수육이랑 마라탕! 🌶️</li>
+            <li>💙 좋아하는 색은 파랑색! 🌊</li>
+            <li>🎹 라흐마니노프 피아노 협주곡 2번 2악장 듣는 걸 좋아해요 🎶</li>
+            <li>🎬 인생 영화는 신세계! 🍿</li>
+            <li>🏋️ 좋아하는 운동은 헬스! 💪🔥</li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- 👆 미니 퀘스트 -->
+      <section class="win has-tab" aria-labelledby="questTitle">
+        <h2 class="tab" id="questTitle"><span class="ico" data-icon="swords" data-scale="2"></span>미니 퀘스트</h2>
+        <p>👆 5초 안에 10번 누르기 도전!</p>
+        <div class="meter" id="meter" aria-hidden="true"></div>
+        <p class="timer" id="timer" aria-live="polite">버튼을 누르면 5초가 시작돼요</p>
+        <div class="commands">
+          <button class="cmd count" id="countBtn" type="button"><span class="cursor" aria-hidden="true">▶</span><span class="ico" data-icon="pointer" data-scale="2"></span>눌러줘! <span class="count-num" id="count">0</span></button>
+          <button class="cmd" id="resetBtn" type="button"><span class="cursor" aria-hidden="true">▶</span><span class="ico" data-icon="reset" data-scale="2"></span>리셋</button>
+          <button class="cmd" id="partyBtn" type="button"><span class="cursor" aria-hidden="true">▶</span><span class="ico" data-icon="popper" data-scale="2"></span>파티 타임!</button>
+          <button class="cmd" id="helloBtn" type="button"><span class="cursor" aria-hidden="true">▶</span><span class="ico" data-icon="talk" data-scale="2"></span>인사하기</button>
+        </div>
+      </section>
+
+      <!-- 💾 세이브 포인트 -->
+      <footer class="win has-tab save">
+        <span class="tab"><span class="ico" data-icon="floppy" data-scale="2"></span>세이브 포인트</span>
+        <span class="ico crystal" data-icon="crystal" data-scale="4" aria-hidden="true"></span>
+        <div>
+          <p>💖 방문해 주셔서 고마워요! 💖</p>
+          <p class="made">🌟 Made with 😄 & 🍭 🌟</p>
+          <p class="today" id="today"></p>
+        </div>
+      </footer>
+    </main>
+
+    <div class="forest-edge" id="forestEdge" aria-hidden="true"></div>
+  </div>
+
+  <script>
+    // ✏️ 여기만 바꾸면 내 정보로 바뀌어요!
+    const MY_NAME = "박종욱 🎮";
+    const HOBBIES = [
+      { icon: "film",     name: "영화 보기",   desc: "팝콘 들고 영화관 출동! 🍿🎥",   emoji: "🎬" },
+      { icon: "tv",       name: "유튜브 보기", desc: "알고리즘 탐험은 끝이 없어 ▶️😆", emoji: "📺" },
+      { icon: "dumbbell", name: "운동",        desc: "땀 흘리고 나면 기분 최고! 🏃‍♂️🔥", emoji: "💪" },
+    ];
+    // 대화창 대사 (누를 때마다 다음 줄)
+    const LINES = [
+      "👋 안녕하세요! 제 숲에 놀러 와 줘서 고마워요!",
+      "✨ 매일매일 즐겁게 사는 게 목표인 사람이에요 ✨",
+      "🎮 아래 길을 따라가면 제가 만든 게임이 있어요. 하나 골라서 놀아 보세요!",
+    ];
+
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const SVG_NS = "http://www.w3.org/2000/svg";
+    const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+    // ───── 도트 그림 그리기: 글자 지도 → 네모 칸 ─────
+    function drawPixels(svg, rows, palette, flip) {
+      svg.textContent = "";
+      const w = rows[0].length;
+      rows.forEach((row, y) => {
+        [...row].forEach((ch, x) => {
+          if (!palette[ch]) return;
+          const r = document.createElementNS(SVG_NS, "rect");
+          r.setAttribute("x", flip ? w - 1 - x : x);
+          r.setAttribute("y", y);
+          r.setAttribute("width", 1);
+          r.setAttribute("height", 1);
+          r.setAttribute("fill", palette[ch]);
+          svg.appendChild(r);
+        });
+      });
+    }
+
+    function makeSprite(rows, palette, size, flip) {
+      const w = rows[0].length, h = rows.length;
+      const svg = document.createElementNS(SVG_NS, "svg");
+      svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+      svg.setAttribute("shape-rendering", "crispEdges");
+      svg.setAttribute("width", size * w);
+      svg.setAttribute("height", size * h);
+      svg.setAttribute("aria-hidden", "true");
+      drawPixels(svg, rows, palette, flip);
+      return svg;
+    }
+
+    // ───── 도트 아이콘 ─────
+    const PAL = {
+      K: "#10183f", W: "#ffffff", Y: "#ffd84a", O: "#f2a33a", R: "#e8563a", P: "#ff7eb3",
+      B: "#2f6fd6", b: "#6ab7ff", G: "#4c9a4a", g: "#2f7a3a", T: "#7a4b2a", t: "#c49a5e",
+      S: "#ffd2a1", s: "#9aa6d6", D: "#5a3a24", d: "#3a2418", F: "#e9ff8a", C: "#7fe3ff", c: "#2f9fd6",
+    };
+    const ICONS = {
+      popper: [
+        "......Y.",
+        ".P..Y...",
+        "...b..P.",
+        "..YY....",
+        ".YOOY.b.",
+        "YOOOY...",
+        "OOOY....",
+        "OY......",
+      ],
+      joystick: [
+        "...RR...",
+        "..RRRR..",
+        "...RR...",
+        "....s...",
+        "....s...",
+        ".bbbbbb.",
+        "bbRbbYbb",
+        ".bbbbbb.",
+      ],
+      target: [
+        "..RRRR..",
+        ".RWWWWR.",
+        "RWRRRRWR",
+        "RWRWWRWR",
+        "RWRWWRWR",
+        "RWRRRRWR",
+        ".RWWWWR.",
+        "..RRRR..",
+      ],
+      bulb: [
+        "..YYYY..",
+        ".YYWYYY.",
+        ".YWYYYY.",
+        ".YYYYYY.",
+        "..YYYY..",
+        "..ssss..",
+        "..ssss..",
+        "...ss...",
+      ],
+      swords: [
+        "W......W",
+        ".W....W.",
+        "..W..W..",
+        "...WW...",
+        "...WW...",
+        "..Y..Y..",
+        ".T....T.",
+        "T......T",
+      ],
+      floppy: [
+        "bbbbbbb.",
+        "bWWWWWbb",
+        "bWWWWWbb",
+        "bbbbbbbb",
+        "bssssssb",
+        "bsKKKKsb",
+        "bssssssb",
+        "bbbbbbbb",
+      ],
+      pointer: [
+        "...W....",
+        "..WSW...",
+        "..WSW...",
+        "..WSWWW.",
+        ".WSSSSSW",
+        ".WSSSSSW",
+        "..WSSSW.",
+        "...WWW..",
+      ],
+      reset: [
+        "..WWWW..",
+        ".W....W.",
+        "W......W",
+        "W....WWW",
+        "W.....W.",
+        "W.......",
+        ".W....W.",
+        "..WWWW..",
+      ],
+      talk: [
+        "WWWWWWW.",
+        "WbbbbbW.",
+        "WbWbWbW.",
+        "WbbbbbW.",
+        "WWWWWWW.",
+        "..WW....",
+        "..W.....",
+        "........",
+      ],
+      mole: [
+        "............",
+        "....DDDD....",
+        "...DDDDDD...",
+        "..DDdDDdDD..",
+        "..DDDPPDDD..",
+        "..DDDDDDDD..",
+        ".TTTTTTTTTT.",
+        "TtTddddddtTT",
+        "TtddddddddtT",
+        ".TTTTTTTTTT.",
+        "............",
+        "............",
+      ],
+      // 랜덤동물 잡기 썸네일: 구멍에서 빼꼼 나온 동물들
+      "a-rabbit": [
+        "...W....W...",
+        "...WP..PW...",
+        "...WP..PW...",
+        "..WWWWWWWW..",
+        "..WKWWWWKW..",
+        "..WWWPPWWW..",
+        ".TTTTTTTTTT.",
+        "TtTddddddtTT",
+        "TtddddddddtT",
+        ".TTTTTTTTTT.",
+        "............",
+        "............",
+      ],
+      "a-cat": [
+        "..O......O..",
+        "..OO....OO..",
+        "..OOOOOOOO..",
+        "..OKOOOOKO..",
+        "..OOOPPOOO..",
+        "..OOOOOOOO..",
+        ".TTTTTTTTTT.",
+        "TtTddddddtTT",
+        "TtddddddddtT",
+        ".TTTTTTTTTT.",
+        "............",
+        "............",
+      ],
+      "a-dog": [
+        "............",
+        "..TttttttT..",
+        ".TTttttttTT.",
+        ".TTKttttKTT.",
+        "..TttKKttT..",
+        "..tttttttt..",
+        ".TTTTTTTTTT.",
+        "TtTddddddtTT",
+        "TtddddddddtT",
+        ".TTTTTTTTTT.",
+        "............",
+        "............",
+      ],
+      "a-frog": [
+        "............",
+        "..GGG..GGG..",
+        "..GKG..GKG..",
+        "..GGGGGGGG..",
+        "..GggggggG..",
+        "..GGGGGGGG..",
+        ".TTTTTTTTTT.",
+        "TtTddddddtTT",
+        "TtddddddddtT",
+        ".TTTTTTTTTT.",
+        "............",
+        "............",
+      ],
+      "a-pig": [
+        "..PP....PP..",
+        "..PPP..PPP..",
+        "..PPPPPPPP..",
+        "..PKPPPPKP..",
+        "..PPRDDRPP..",
+        "..PPPPPPPP..",
+        ".TTTTTTTTTT.",
+        "TtTddddddtTT",
+        "TtddddddddtT",
+        ".TTTTTTTTTT.",
+        "............",
+        "............",
+      ],
+      "a-bear": [
+        ".TT......TT.",
+        ".TDT....TDT.",
+        "..TTTTTTTT..",
+        "..TKTTTTKT..",
+        "..TTtddtTT..",
+        "..TTTttTTT..",
+        ".TTTTTTTTTT.",
+        "TtTddddddtTT",
+        "TtddddddddtT",
+        ".TTTTTTTTTT.",
+        "............",
+        "............",
+      ],
+      "a-chick": [
+        ".....Y......",
+        "....YY......",
+        "..YYYYYYYY..",
+        "..YKYYYYKY..",
+        "..YYYOOYYY..",
+        "..YYYYYYYY..",
+        ".TTTTTTTTTT.",
+        "TtTddddddtTT",
+        "TtddddddddtT",
+        ".TTTTTTTTTT.",
+        "............",
+        "............",
+      ],
+      peace: [
+        "..KK..KK....",
+        ".KSSK.KSSK..",
+        ".KSSK.KSSK..",
+        ".KSSKKKSSK..",
+        ".KSSSSSSSSK.",
+        "KSSKKSSSSSK.",
+        "KSSSSSSSSSK.",
+        ".KSSSSSSSK..",
+        "..KSSSSSK...",
+        "..KSSSSSK...",
+        "..KBBBBBK...",
+        "..KKKKKKK...",
+      ],
+      pine: [
+        ".....g....F.",
+        "....ggg.....",
+        "...gGggg....",
+        "....ggg.....",
+        "...ggGgg..F.",
+        "..gggggGg...",
+        "....ggg.....",
+        "..ggGgggg...",
+        ".gggggggGg..",
+        "....TT......",
+        "....TT......",
+        "............",
+      ],
+      stick: [
+        "....RRR.....",
+        "...RRWRR....",
+        "...RRRRR....",
+        "....RRR.....",
+        ".....s......",
+        ".....s......",
+        ".....s......",
+        "..bbbbbbb...",
+        ".bccccccbb..",
+        ".bcYcRccbb..",
+        ".bccccccbb..",
+        "..bbbbbbb...",
+      ],
+      film: [
+        ".WKWKWKWKW..",
+        ".KWKWKWKWK..",
+        ".WWWWWWWWW..",
+        ".WssssssssW.",
+        ".WsKKKKKKsW.",
+        ".WsKbbbbKsW.",
+        ".WsKbbbbKsW.",
+        ".WsKKKKKKsW.",
+        ".WssssssssW.",
+        ".WWWWWWWWWW.",
+        "............",
+        "............",
+      ],
+      tv: [
+        "...W...W....",
+        "....W.W.....",
+        "WWWWWWWWWWW.",
+        "WssssssssWW.",
+        "WsbbbbbbsWY.",
+        "WsbWbbbbsWW.",
+        "WsbbbbbbsWR.",
+        "WsbbbbbbsWW.",
+        "WssssssssWW.",
+        "WWWWWWWWWWW.",
+        "..W.....W...",
+        "............",
+      ],
+      dumbbell: [
+        "............",
+        "............",
+        ".WW......WW.",
+        "WssW....WssW",
+        "WssWWWWWWssW",
+        "WssssssssssW",
+        "WssWWWWWWssW",
+        "WssW....WssW",
+        ".WW......WW.",
+        "............",
+        "............",
+        "............",
+      ],
+      crystal: [
+        "...CC...",
+        "..CWCC..",
+        ".CWCCcC.",
+        "CWCCCccC",
+        "CCCCccc.",
+        ".CCccc..",
+        "..Ccc...",
+        "...c....",
+      ],
+    };
+
+    function placeIcons(root) {
+      root.querySelectorAll("[data-icon]").forEach(el => {
+        el.textContent = "";
+        el.appendChild(makeSprite(ICONS[el.dataset.icon], PAL, +el.dataset.scale || 2, el.hasAttribute("data-flip")));
+      });
+    }
+
+    // ───── 내 캐릭터 (표정 바꾸기) ─────
+    const HERO_COLORS = {
+      K: "#2a1a12", H: "#4a2c1a", h: "#6b4126", S: "#ffd2a1", s: "#f0b885",
+      B: "#2f6fd6", b: "#1f4fa8", P: "#ff9fb0", E: "#1a1a2e", G: "#10183f",
+      W: "#ffffff", Y: "#ffd84a", R: "#e8563a",
+    };
+    const HERO_BASE = [
+      "....KKKKKKKK....",
+      "...KHHHHHHHHK...",
+      "..KHHhhHHHHHHK..",
+      ".KHHhHHHHHHHHHK.",
+      ".KHHHHHHHHHHHHK.",
+      ".KHSSSHHHSSSSHK.",
+      ".KSSSSSSSSSSSSK.",
+      ".KSSSSSSSSSSSSK.",
+      ".KSSSSSSSSSSSSK.",
+      ".KSSSSSSSSSSSSK.",
+      "..KSSSSSSSSSSK..",
+      "...KKsSSSSsKK...",
+      "....KBBBBBBK....",
+      "...KSBBWWBBSK...",
+      "...KSBBBBBBSK...",
+      "....KbbKKbbK....",
+    ];
+    // 7~10번째 줄의 2~13번째 칸만 바꿔요 (. 은 그대로)
+    const FACES = {
+      cool:      ["GGGGGGGGGGGG", "SGGWGSSGGWGS", "PSSSSSSSSSSP", "..SSSSEEES.."],
+      normal:    ["SSSESSSSESSS", "SSSESSSSESSS", "PSSSSSSSSSSP", "...SSEESS..."],
+      happy:     ["SSSESSSSESSS", "SSESESSESESS", "PSSSSSSSSSSP", "...SEEEES..."],
+      star:      ["SSSYSSSSYSSS", "SSYYYSSYYYSS", "PSSYSSSSYSSP", "...SEEEES..."],
+      wink:      ["SSSESSSSSSSS", "SSSESSSEEESS", "PSSSSSSSSSSP", "...SSERSS..."],
+      surprised: ["SSSESSSSESSS", "SSSESSSSESSS", "PSSSSEESSSSP", "....SEES...."],
+      dizzy:     ["SSESESSESESS", "SSSESSSSESSS", "SSESESSESESS", "...ESESES..."],
+    };
+    const TAP_FACES = ["cool", "normal", "happy", "star", "wink", "surprised"];
+
+    const spriteEl = document.getElementById("sprite");
+    let faceIdx = 0;
+    let faceTimer = null;
+
+    function heroRows(face) {
+      const f = FACES[face];
+      return HERO_BASE.map((row, y) => {
+        const o = f[y - 7];
+        if (!o) return row;
+        const cells = [...row];
+        [...o].forEach((ch, i) => { if (ch !== ".") cells[i + 2] = ch; });
+        return cells.join("");
+      });
+    }
+    function setFace(face) { drawPixels(spriteEl, heroRows(face), HERO_COLORS); }
+
+    // 잠깐 다른 표정을 지었다가 원래 표정으로
+    function flashFace(face, ms) {
+      clearTimeout(faceTimer);
+      setFace(face);
+      faceTimer = setTimeout(() => setFace(TAP_FACES[faceIdx]), ms);
+    }
+
+    setFace("cool");
+    document.getElementById("avatar").addEventListener("click", () => {
+      clearTimeout(faceTimer);
+      faceIdx = (faceIdx + 1) % TAP_FACES.length;
+      setFace(TAP_FACES[faceIdx]);
+    });
+
+    // ───── 이름, 만든 게임 수 ─────
+    document.getElementById("name").textContent = MY_NAME;
+    document.getElementById("speaker").textContent = MY_NAME;
+
+    const gameLinks = [...document.querySelectorAll("#menu a")];
+    const playable = gameLinks.filter(a => !a.hasAttribute("data-soon")).length;
+    const soon = gameLinks.length - playable;
+    document.getElementById("gameCount").textContent =
+      `${playable}개` + (soon ? ` + 준비 중 ${soon}개` : "");
+    const expEl = document.getElementById("exp");
+    expEl.style.setProperty("--max", gameLinks.length);
+    gameLinks.forEach((_, i) => {
+      const cell = document.createElement("i");
+      if (i < playable) cell.className = "on";
+      expEl.appendChild(cell);
+    });
+
+    // ───── 대화창 ─────
+    const dialogEl = document.getElementById("dialog");
+    const lineEl = document.getElementById("line");
+    const lineLive = document.getElementById("lineLive");
+    let lineIdx = 0;
+    let typeTimer = null;
+
+    function typeLine(text) {
+      clearInterval(typeTimer);
+      dialogEl.classList.remove("done");
+      lineLive.textContent = text;   // 화면 읽기 프로그램에는 한 번에 한 줄
+      const chars = [...text];
+      if (reduceMotion) {
+        lineEl.textContent = text;
+        dialogEl.classList.add("done");
+        return;
+      }
+      let i = 0;
+      lineEl.textContent = "";
+      typeTimer = setInterval(() => {
+        lineEl.textContent += chars[i++];
+        if (i >= chars.length) {
+          clearInterval(typeTimer);
+          dialogEl.classList.add("done");
+        }
+      }, 45);
+    }
+
+    function nextLine() {
+      // 타이핑 중에 누르면 한 번에 다 보여 주기
+      if (!dialogEl.classList.contains("done")) {
+        clearInterval(typeTimer);
+        lineEl.textContent = LINES[lineIdx];
+        dialogEl.classList.add("done");
+        return;
+      }
+      lineIdx = (lineIdx + 1) % LINES.length;
+      typeLine(LINES[lineIdx]);
+    }
+    dialogEl.addEventListener("click", nextLine);
+    dialogEl.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); nextLine(); }
+    });
+    setTimeout(() => typeLine(LINES[0]), reduceMotion ? 0 : 700);
+
+    // ───── 게임 메뉴: ▶ 커서가 고른 줄을 따라가요 ─────
+    function select(a) {
+      gameLinks.forEach(l => l.classList.toggle("sel", l === a));
+    }
+    select(gameLinks[0]);
+    gameLinks.forEach(a => {
+      a.addEventListener("pointerenter", () => select(a));
+      a.addEventListener("pointerdown", () => select(a));
+      a.addEventListener("focus", () => select(a));
+    });
+
+    // ───── 취미 = 인벤토리 슬롯 ─────
+    const hobbiesEl = document.getElementById("hobbies");
+    HOBBIES.forEach(h => {
+      const li = document.createElement("li");
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "skill";
+      btn.innerHTML = `
+        <span class="slot ico" data-icon="${h.icon}" data-scale="3" aria-hidden="true"></span>
+        <span>
+          <span class="skill-name">${h.name}</span>
+          <span class="skill-desc">${h.desc}</span>
+        </span>`;
+      btn.addEventListener("click", e => {
+        const r = btn.getBoundingClientRect();
+        burst(e.clientX || r.left + 28, e.clientY || r.top + 28, h.emoji, 8);
+      });
+      li.appendChild(btn);
+      hobbiesEl.appendChild(li);
+    });
+
+    // 들어올 때마다 랜덤동물 잡기 썸네일의 동물이 바뀐다
+    const thumbAnimals = ["a-rabbit", "a-cat", "a-dog", "a-frog", "a-pig", "a-bear", "a-chick"];
+    document.getElementById("randomAnimalThumb").dataset.icon =
+      thumbAnimals[Math.floor(Math.random() * thumbAnimals.length)];
+    placeIcons(document);
+
+    // ───── 숲: 흙길, 나무, 꽃, 낙엽 ─────
+    const TREE = [
+      ".....GGGGGG.....",
+      "...GGgGGGGGGG...",
+      "..GgggGGGGGGGG..",
+      ".GGggGGGGGGGGdG.",
+      ".GGgGGGGGGGGGdG.",
+      "GGGGGGGGGGGGGddG",
+      "GGGgGGGGGGGGdddG",
+      "GGGGGGGGGGGGGddG",
+      ".GGGGGGGGGGGddG.",
+      ".GdGGGGGGGGdddG.",
+      "..GddGGGGGdddG..",
+      "...GGddddddGG...",
+      "......TTTT......",
+      "......TtTT......",
+      "......TtTT......",
+      ".....oTTTTo.....",
+    ];
+    const TREE_COLORS = { G: "#2f7a3a", g: "#4c9a4a", d: "#24582c", T: "#7a4b2a", t: "#9a6338", o: "rgba(16,40,20,.3)" };
+    const BUSH = [
+      "..GGGG..",
+      ".GgGGGG.",
+      "GGgGGGdG",
+      "GGGGGddG",
+      ".GGdddG.",
+    ];
+    const FLOWER = [
+      ".W.",
+      "WYW",
+      ".W.",
+    ];
+    const LEAF_SHAPE = [
+      "..LL.",
+      ".LlLL",
+      "LLlL.",
+      "LLl..",
+      ".v...",
+    ];
+    const LEAF_COLORS = [
+      { L: "#7ec850", l: "#5fa83a", v: "#3c6e28" },
+      { L: "#f2a33a", l: "#d07f20", v: "#7a4b2a" },
+      { L: "#e8563a", l: "#b83c26", v: "#7a4b2a" },
+      { L: "#f2d14b", l: "#d0a828", v: "#7a4b2a" },
+    ];
+
+    const sceneryEl = document.getElementById("scenery");
+    const worldEl = document.getElementById("world");
+    const stackEl = document.getElementById("stack");
+
+    // 창 사이 틈마다 좌우로 꺾이는 흙길 (가로·세로 줄만 써서 도트처럼)
+    function drawPath(vw, h, margin, wide) {
+      const w = worldEl.offsetWidth;
+      const outer = wide ? 112 : 64;
+      const inner = outer - 16;
+      const worldTop = worldEl.getBoundingClientRect().top;
+      const xs = wide
+        ? [margin - 72, margin + w + 72]
+        : [margin + w * 0.28, margin + w * 0.72];
+      const blocks = [...stackEl.children];
+      const center = vw / 2;
+      const pts = [[center, 0]];
+      let x = center;
+      blocks.forEach((b, i) => {
+        const next = blocks[i + 1];
+        const r = b.getBoundingClientRect();
+        const gapY = next
+          ? Math.round((r.bottom + next.getBoundingClientRect().top) / 2 - worldTop)
+          : Math.round(r.bottom - worldTop + 20);
+        const nx = next ? xs[i % 2] : center;
+        pts.push([x, gapY], [nx, gapY]);
+        x = nx;
+      });
+      pts.push([x, h]);
+
+      const svg = document.createElementNS(SVG_NS, "svg");
+      svg.setAttribute("width", vw);
+      svg.setAttribute("height", h);
+      svg.setAttribute("shape-rendering", "crispEdges");
+      svg.style.left = "0";
+      svg.style.top = "0";
+      const d = pts.map(p => p.join(",")).join(" ");
+      [[outer, "#c49a5e"], [inner, "#d9b37a"]].forEach(([sw, color]) => {
+        const line = document.createElementNS(SVG_NS, "polyline");
+        line.setAttribute("points", d);
+        line.setAttribute("fill", "none");
+        line.setAttribute("stroke", color);
+        line.setAttribute("stroke-width", sw);
+        line.setAttribute("stroke-linecap", "square");
+        line.setAttribute("stroke-linejoin", "miter");
+        svg.appendChild(line);
+      });
+      sceneryEl.appendChild(svg);
+      return xs;
+    }
+
+    function plantScenery() {
+      sceneryEl.textContent = "";
+      const h = worldEl.offsetHeight;
+      const w = worldEl.offsetWidth;
+      const vw = sceneryEl.offsetWidth;
+      const margin = (vw - w) / 2;   // 창 바깥 잔디 폭
+      const wide = margin > 160;
+      const size = wide ? 5 : 4;
+      const pathXs = drawPath(vw, h, margin, wide);
+      const onPath = x => pathXs.some(px => Math.abs(px - x) < 72);
+
+      // 양쪽 잔디에 나무 (흙길은 비워 두고, 좁은 화면에서는 창 뒤로 살짝 보이게)
+      for (let y = 40; y < h - 160; y += (wide ? 110 : 150) + Math.random() * 90) {
+        [0, 1].forEach(side => {
+          let x;
+          if (wide) {
+            const room = margin - size * 16 - 8;
+            for (let tries = 0; tries < 6; tries++) {
+              x = Math.random() * room;
+              const cx = side ? vw - x - size * 8 : x + size * 8;
+              if (!onPath(cx)) break;
+            }
+          } else {
+            x = -40 - Math.random() * 20;
+          }
+          const tree = makeSprite(TREE, TREE_COLORS, size);
+          tree.style.top = (y + Math.random() * 60) + "px";
+          tree.style[side ? "right" : "left"] = x + "px";
+          sceneryEl.appendChild(tree);
+        });
+      }
+      // 잔디의 덤불과 꽃
+      for (let i = 0; i < Math.floor(h / (wide ? 70 : 120)); i++) {
+        const isFlower = Math.random() < 0.6;
+        const s = isFlower ? makeSprite(FLOWER, { W: "#ffffff", Y: "#ffd84a" }, 4)
+                           : makeSprite(BUSH, TREE_COLORS, 4);
+        const side = Math.random() < 0.5;
+        const x = wide
+          ? (side ? Math.random() * (margin - 40) : vw - margin + 8 + Math.random() * (margin - 48))
+          : (side ? Math.random() * 16 : vw - 24);
+        if (onPath(x)) continue;
+        s.style.top = Math.random() * (h - 40) + "px";
+        s.style.left = x + "px";
+        sceneryEl.appendChild(s);
+      }
+
+      // 숲의 끝: 나무가 빽빽한 줄 (흙길이 들어가는 가운데는 비워 둬요)
+      const edge = document.getElementById("forestEdge");
+      edge.textContent = "";
+      const count = Math.ceil(vw / 64) + 2;
+      for (let i = 0; i < count; i++) {
+        const left = i * 64 - margin - 40;
+        const cx = left + margin + 40;
+        if (Math.abs(cx - vw / 2) < 72) continue;
+        const tree = makeSprite(TREE, TREE_COLORS, 5);
+        tree.style.position = "absolute";
+        tree.style.bottom = (i % 2 ? 0 : 24) + "px";
+        tree.style.left = left + "px";
+        edge.appendChild(tree);
+      }
+    }
+
+    const leavesEl = document.getElementById("leaves");
+    for (let i = 0; i < 14; i++) {
+      const leaf = makeSprite(LEAF_SHAPE, pick(LEAF_COLORS), 3);
+      leaf.style.left = Math.random() * 100 + "vw";
+      leaf.style.animationDuration = (12 + Math.random() * 14) + "s";
+      leaf.style.animationDelay = (-Math.random() * 24) + "s";
+      leaf.style.animationTimingFunction = `steps(${60 + Math.floor(Math.random() * 30)})`;
+      leavesEl.appendChild(leaf);
+    }
+
+    // 잔디나 창 테두리 사이를 누르면 낙엽이 흩날려요 (창 안쪽, 버튼, 링크는 빼고)
+    document.addEventListener("pointerdown", e => {
+      if (reduceMotion) return;
+      if (e.target.closest("a, button, [role=button]")) return;
+      const inWin = e.target.closest(".win");
+      if (inWin) {
+        // 창 안쪽을 누르면 무시, 흰 테두리(12px)를 누르면 흩날리기
+        const r = inWin.getBoundingClientRect();
+        const edge = Math.min(e.clientX - r.left, r.right - e.clientX, e.clientY - r.top, r.bottom - e.clientY);
+        if (edge > 12) return;
+      }
+      for (let i = 0; i < 6; i++) {
+        const leaf = makeSprite(LEAF_SHAPE, pick(LEAF_COLORS), 3);
+        leaf.classList.add("scatter");
+        leaf.style.left = e.clientX + "px";
+        leaf.style.top = e.clientY + "px";
+        leaf.style.setProperty("--dx", (Math.random() - 0.5) * 120 + "px");
+        leaf.style.setProperty("--dy", -(20 + Math.random() * 60) + "px");
+        document.body.appendChild(leaf);
+        setTimeout(() => leaf.remove(), 1400);
+      }
+    });
+
+    // 글꼴이 다 들어온 뒤에 높이를 재서 길 내고 나무 심기
+    (document.fonts ? document.fonts.ready : Promise.resolve()).then(plantScenery);
+    let resizeTimer;
+    window.addEventListener("resize", () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(plantScenery, 200);
+    });
+
+    // ───── 이모지 터뜨리기 ─────
+    function burst(x, y, emoji, count) {
+      if (reduceMotion) return;
+      for (let i = 0; i < count; i++) {
+        const c = document.createElement("div");
+        c.className = "confetti";
+        c.textContent = Array.isArray(emoji) ? pick(emoji) : emoji;
+        c.style.left = (x + (Math.random() - 0.5) * 200) + "px";
+        c.style.top = (y - Math.random() * 100) + "px";
+        document.body.appendChild(c);
+        setTimeout(() => c.remove(), 2500);
+      }
+    }
+
+    // 페이지 맨 아래 오늘 날짜 (페이지를 연 날 기준)
+    document.getElementById("today").textContent = "📅 오늘은 " +
+      new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "long" });
+
+    // 인사 버튼: 버튼 위에 말풍선 띄우기
+    const helloBtn = document.getElementById("helloBtn");
+    helloBtn.addEventListener("click", () => {
+      document.querySelectorAll(".bubble").forEach(b => b.remove());
+      const r = helloBtn.getBoundingClientRect();
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      bubble.textContent = "👋 안녕! 💙";
+      bubble.style.left = (r.left + r.width / 2) + "px";
+      bubble.style.top = (r.top - 16) + "px";
+      document.body.appendChild(bubble);
+      flashFace("happy", 2200);
+      setTimeout(() => bubble.remove(), 2200);
+    });
+
+    // ───── 미니 퀘스트: 5초 안에 10번 누르면 성공! ─────
+    const GOAL = 10;
+    const TIME_LIMIT = 5000; // 5초
+    let count = 0;
+    let startTime = 0;
+    let timerId = null;
+    const countEl = document.getElementById("count");
+    const timerEl = document.getElementById("timer");
+    const meterEl = document.getElementById("meter");
+    for (let i = 0; i < GOAL; i++) meterEl.appendChild(document.createElement("i"));
+    const cells = meterEl.querySelectorAll("i");
+    const IDLE_TEXT = "버튼을 누르면 5초가 시작돼요";
+
+    function setCount(n) {
+      count = n;
+      countEl.textContent = count;
+      cells.forEach((c, i) => c.classList.toggle("on", i < count));
+    }
+
+    function stopTimer() {
+      clearInterval(timerId);
+      timerId = null;
+    }
+
+    document.getElementById("countBtn").addEventListener("click", () => {
+      // 첫 클릭에서 5초 타이머 시작
+      if (timerId === null) {
+        setCount(0);
+        startTime = Date.now();
+        timerEl.classList.remove("urgent");
+        timerId = setInterval(() => {
+          const left = Math.max(0, TIME_LIMIT - (Date.now() - startTime));
+          timerEl.textContent = `⏱️ 남은 시간 ${(left / 1000).toFixed(1)}초`;
+          timerEl.classList.toggle("urgent", left <= 2000);
+          if (left === 0) {
+            stopTimer();
+            showPopup("fail", `⏰😵<br>Time Over!<small>${count}번 클릭… 다시 도전! 💪🔥</small>`);
+            flashFace("dizzy", 3000);
+            timerEl.textContent = "👆 버튼을 눌러 다시 도전!";
+            timerEl.classList.remove("urgent");
+            setCount(0);
+          }
+        }, 50);
+      }
+
+      setCount(count + 1);
+
+      if (count === GOAL) {
+        const sec = ((Date.now() - startTime) / 1000).toFixed(1);
+        stopTimer();
+        showPopup("clear", `🏆✨<br>Mission Complete!<small>🎯 ${sec}초 만에 10번 클릭! 💯🥳</small>`);
+        flashFace("star", 3000);
+        const stars = ["🏆", "🎉", "⭐", "💯", "🥳", "🎊", "✨"];
+        for (let i = 0; i < 40; i++) {
+          setTimeout(() => burst(Math.random() * innerWidth, 0, stars, 1), i * 40);
+        }
+        timerEl.textContent = `🏅 기록 ${sec}초! 버튼을 눌러 다시 도전!`;
+        timerEl.classList.remove("urgent");
+        count = 0;
+      }
+    });
+
+    // 리셋 버튼: 숫자 0으로, 타이머 멈추고 처음 상태로
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      stopTimer();
+      setCount(0);
+      timerEl.textContent = IDLE_TEXT;
+      timerEl.classList.remove("urgent");
+    });
+
+    // 화면 가운데 퀘스트 결과 창 띄우기
+    function showPopup(type, html) {
+      document.querySelectorAll(".popup").forEach(b => b.remove());
+      const box = document.createElement("div");
+      box.className = "win popup " + type;
+      box.innerHTML = html;
+      document.body.appendChild(box);
+      setTimeout(() => box.remove(), 3000);
+    }
+
+    // 파티 버튼
+    document.getElementById("partyBtn").addEventListener("click", () => {
+      const party = ["🎉", "🎊", "🥳", "🎈", "✨", "🌟", "💖", "🍰"];
+      flashFace("happy", 2500);
+      for (let i = 0; i < 40; i++) {
+        setTimeout(() => burst(Math.random() * innerWidth, 0, party, 1), i * 40);
+      }
+    });
+  </script>
+</body>
+</html>
